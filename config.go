@@ -28,7 +28,7 @@ func NewLoader(options ...Option) *Loader {
 	}
 
 	if len(l.backends) == 0 {
-		l.backends = append(l.backends, FromEnv())
+		l.backends = append(l.backends, EnvBackend())
 	}
 
 	return &l

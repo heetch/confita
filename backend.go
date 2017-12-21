@@ -3,6 +3,7 @@ package config
 import (
 	"context"
 	"os"
+	"strings"
 )
 
 // A Backend is used to fetch values from a given key.
@@ -23,14 +24,20 @@ func (b *backendFunc) Get(ctx context.Context, key string) ([]byte, error) {
 	return b.fn(ctx, key)
 }
 
-// FromEnv creates a configuration loader that loads from the environment.
-func FromEnv() Backend {
+// EnvBackend creates a configuration loader that loads from the environment.
+// If the key is not found, this backend turns it to uppercase and tries again.
+func EnvBackend() Backend {
 	return BackendFunc(func(ctx context.Context, key string) ([]byte, error) {
 		val, ok := os.LookupEnv(key)
-		if !ok {
-			return nil, ErrNotFound
+		if ok {
+			return []byte(val), nil
 		}
 
-		return []byte(val), nil
+		val, ok = os.LookupEnv(strings.ToUpper(key))
+		if ok {
+			return []byte(val), nil
+		}
+
+		return nil, ErrNotFound
 	})
 }
