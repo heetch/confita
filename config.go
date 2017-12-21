@@ -1,10 +1,12 @@
 package config
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
+	"time"
 )
 
 var (
@@ -12,8 +14,36 @@ var (
 	ErrNotFound = errors.New("key not found")
 )
 
-// Load configuration from any backend.
-func Load(to interface{}, backends ...Backend) error {
+// Loader loads configuration keys from backends and stores them is a struct.
+type Loader struct {
+	timeout  time.Duration
+	backends []Backend
+}
+
+// NewLoader creates a Loader. If no backend is specified, the loader uses the environment.
+func NewLoader(options ...Option) *Loader {
+	var l Loader
+	for _, opt := range options {
+		opt(&l)
+	}
+
+	if len(l.backends) == 0 {
+		l.backends = append(l.backends, FromEnv())
+	}
+
+	return &l
+}
+
+// Load analyses all the fields of the given struct for a "config" tag and queries each backend
+// in order for the corresponding key.
+func (l *Loader) Load(to interface{}) error {
+	ctx := context.Background()
+	if l.timeout != 0 {
+		var cancel func()
+		ctx, cancel = context.WithTimeout(ctx, l.timeout)
+		defer cancel()
+	}
+
 	ref := reflect.ValueOf(to)
 
 	if !ref.IsValid() || ref.Kind() != reflect.Ptr || ref.Elem().Kind() != reflect.Struct {
@@ -38,8 +68,14 @@ func Load(to interface{}, backends ...Backend) error {
 		}
 
 		var found bool
-		for _, b := range backends {
-			raw, err := b.Get(key)
+		for _, b := range l.backends {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
+			}
+
+			raw, err := b.Get(ctx, key)
 			if err != nil {
 				if err == ErrNotFound {
 					continue
@@ -65,9 +101,22 @@ func Load(to interface{}, backends ...Backend) error {
 	return nil
 }
 
-// A Backend is used to fetch values from a given key.
-type Backend interface {
-	Get(key string) ([]byte, error)
+// An Option is a function that configures a Loader.
+type Option func(*Loader)
+
+// Backends configures the loader to use the given backends.
+// If this option is not used, the loader will load from the environment.
+func Backends(backends ...Backend) func(*Loader) {
+	return func(l *Loader) {
+		l.backends = append(l.backends, backends...)
+	}
+}
+
+// Timeout sets the timeout for the entire configuration load process.
+func Timeout(t time.Duration) func(*Loader) {
+	return func(l *Loader) {
+		l.timeout = t
+	}
 }
 
 func convert(data string, value *reflect.Value) error {

@@ -1,6 +1,7 @@
 package config_test
 
 import (
+	"context"
 	"math"
 	"strconv"
 	"testing"
@@ -11,7 +12,7 @@ import (
 
 type store map[string]string
 
-func (s store) Get(key string) ([]byte, error) {
+func (s store) Get(ctx context.Context, key string) ([]byte, error) {
 	data, ok := s[key]
 	if !ok {
 		return nil, config.ErrNotFound
@@ -72,12 +73,13 @@ func TestLoad(t *testing.T) {
 		"string": "string",
 	}
 
-	err := config.Load(&s,
+	loader := config.NewLoader(config.Backends(
 		boolStore,
 		intStore,
 		uintStore,
 		floatStore,
-		stringStore)
+		stringStore))
+	err := loader.Load(&s)
 	require.NoError(t, err)
 
 	ptr := "ptr"
