@@ -1,8 +1,8 @@
-hash: 7e9d09de10c131c52c8b4de36621419cae03146ff98e7684f8a17c7e032581ad
-updated: 2017-12-20T18:19:18.138737805+01:00
+hash: a4a683502f3d72e2fd622d789d1f3e9b16a6363343ecd047c33eb26617ba2315
+updated: 2017-12-21T18:06:58.430457519+01:00
 imports:
 - name: github.com/coreos/etcd
-  version: 1e1dbb23924672c6cd72c62ee0db2b45f778da71
+  version: b19dae00651b890498bcca38ac2cc3cad471281e
   subpackages:
   - auth/authpb
   - clientv3
@@ -42,7 +42,7 @@ imports:
   - googleapis/api/annotations
   - googleapis/rpc/status
 - name: google.golang.org/grpc
-  version: 9a2334748bab9638f1480ad4f0ac6ac0c6c3a486
+  version: 5b3c4e850e90a4cf6a20ebd46c8b32a0a3afcb9e
   subpackages:
   - balancer
   - codes

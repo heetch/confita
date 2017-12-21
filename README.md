@@ -1,11 +1,11 @@
-# go-config
+# confita
 
-go-config is a tool that loads configuration from multiple backends and stores it in a struct.
+confita is a tool that loads configuration from multiple backends and stores it in a struct.
 
 ## Install
 
 ```sh
-go get -u github.com/heetch/go-config
+go get -u github.com/heetch/confita
 ```
 
 ## Usage
@@ -18,8 +18,8 @@ import (
   "time"
 
   "github.com/coreos/etcd/clientv3"
-  config "github.com/heetch/go-config"
-  "github.com/heetch/go-config/etcd"
+  "github.com/heetch/confita"
+  "github.com/heetch/confita/etcd"
 )
 
 type Config struct {
@@ -33,7 +33,7 @@ func main() {
   var cfg Config
 
   // By default, the loader loads keys from the environment.
-  loader := config.NewLoader()
+  loader := confita.NewLoader()
   err := loader.Load(&cfg)
   if err != nil {
     log.Fatal(err)
@@ -48,12 +48,12 @@ func main() {
   }
   defer client.Close()
 
-  loader = config.NewLoader(
-    config.Backends(
-      config.EnvBackend(),
+  loader = confita.NewLoader(
+    confita.Backends(
+      confita.EnvBackend(),
       etcd.NewBackend(client, "prefix"),
     ),
-    config.Timeout(5*time.Second),
+    confita.Timeout(5*time.Second),
   )
   err = loader.Load(&cfg)
   if err != nil {

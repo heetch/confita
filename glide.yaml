@@ -1,4 +1,4 @@
-package: github.com/heetch/go-config
+package: github.com/heetch/confita
 import:
 - package: github.com/coreos/etcd
   version: ^3.2.11

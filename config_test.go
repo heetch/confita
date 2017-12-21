@@ -1,4 +1,4 @@
-package config_test
+package confita_test
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 
-	config "github.com/heetch/go-config"
+	"github.com/heetch/confita"
 	"github.com/stretchr/testify/require"
 )
 
@@ -15,7 +15,7 @@ type store map[string]string
 func (s store) Get(ctx context.Context, key string) ([]byte, error) {
 	data, ok := s[key]
 	if !ok {
-		return nil, config.ErrNotFound
+		return nil, confita.ErrNotFound
 	}
 
 	return []byte(data), nil
@@ -73,7 +73,7 @@ func TestLoad(t *testing.T) {
 		"string": "string",
 	}
 
-	loader := config.NewLoader(config.Backends(
+	loader := confita.NewLoader(confita.Backends(
 		boolStore,
 		intStore,
 		uintStore,
