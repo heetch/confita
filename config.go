@@ -121,8 +121,16 @@ func Timeout(t time.Duration) func(*Loader) {
 
 func convert(data string, value *reflect.Value) error {
 	k := value.Kind()
+	t := value.Type()
 
 	switch {
+	case t.String() == "time.Duration":
+		d, err := time.ParseDuration(data)
+		if err != nil {
+			return err
+		}
+
+		value.SetInt(int64(d))
 	case k == reflect.Bool:
 		b, err := strconv.ParseBool(data)
 		if err != nil {

@@ -5,6 +5,7 @@ import (
 	"math"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/heetch/confita"
 	"github.com/stretchr/testify/require"
@@ -23,22 +24,23 @@ func (s store) Get(ctx context.Context, key string) ([]byte, error) {
 
 func TestLoad(t *testing.T) {
 	type testStruct struct {
-		Bool    bool    `config:"bool" json:"bool"`
-		Int     int     `config:"int" json:"int"`
-		Int8    int8    `config:"int8" json:"int8"`
-		Int16   int16   `config:"int16" json:"int16"`
-		Int32   int32   `config:"int32" json:"int32"`
-		Int64   int64   `config:"int64" json:"int64"`
-		Uint    uint    `config:"uint" json:"uint"`
-		Uint8   uint8   `config:"uint8" json:"uint8"`
-		Uint16  uint16  `config:"uint16" json:"uint16"`
-		Uint32  uint32  `config:"uint32" json:"uint32"`
-		Uint64  uint64  `config:"uint64" json:"uint64"`
-		Float32 float32 `config:"float32" json:"float32"`
-		Float64 float64 `config:"float64" json:"float64"`
-		Ptr     *string `config:"ptr" json:"ptr"`
-		String  string  `config:"string" json:"string"`
-		Ignored string
+		Bool     bool          `config:"bool"`
+		Int      int           `config:"int"`
+		Int8     int8          `config:"int8"`
+		Int16    int16         `config:"int16"`
+		Int32    int32         `config:"int32"`
+		Int64    int64         `config:"int64"`
+		Uint     uint          `config:"uint"`
+		Uint8    uint8         `config:"uint8"`
+		Uint16   uint16        `config:"uint16"`
+		Uint32   uint32        `config:"uint32"`
+		Uint64   uint64        `config:"uint64"`
+		Float32  float32       `config:"float32"`
+		Float64  float64       `config:"float64"`
+		Ptr      *string       `config:"ptr"`
+		String   string        `config:"string"`
+		Duration time.Duration `config:"duration"`
+		Ignored  string
 	}
 
 	var s testStruct
@@ -68,9 +70,10 @@ func TestLoad(t *testing.T) {
 		"float64": strconv.FormatFloat(math.MaxFloat64, 'f', 6, 64),
 	}
 
-	stringStore := store{
-		"ptr":    "ptr",
-		"string": "string",
+	otherStore := store{
+		"ptr":      "ptr",
+		"string":   "string",
+		"duration": "10s",
 	}
 
 	loader := confita.NewLoader(confita.Backends(
@@ -78,26 +81,27 @@ func TestLoad(t *testing.T) {
 		intStore,
 		uintStore,
 		floatStore,
-		stringStore))
+		otherStore))
 	err := loader.Load(&s)
 	require.NoError(t, err)
 
 	ptr := "ptr"
 	require.EqualValues(t, s, testStruct{
-		Bool:    true,
-		Int:     math.MaxInt64,
-		Int8:    math.MaxInt8,
-		Int16:   math.MaxInt16,
-		Int32:   math.MaxInt32,
-		Int64:   math.MaxInt64,
-		Uint:    math.MaxUint64,
-		Uint8:   math.MaxUint8,
-		Uint16:  math.MaxUint16,
-		Uint32:  math.MaxUint32,
-		Uint64:  math.MaxUint64,
-		Float32: math.MaxFloat32,
-		Float64: math.MaxFloat64,
-		Ptr:     &ptr,
-		String:  "string",
+		Bool:     true,
+		Int:      math.MaxInt64,
+		Int8:     math.MaxInt8,
+		Int16:    math.MaxInt16,
+		Int32:    math.MaxInt32,
+		Int64:    math.MaxInt64,
+		Uint:     math.MaxUint64,
+		Uint8:    math.MaxUint8,
+		Uint16:   math.MaxUint16,
+		Uint32:   math.MaxUint32,
+		Uint64:   math.MaxUint64,
+		Float32:  math.MaxFloat32,
+		Float64:  math.MaxFloat64,
+		Ptr:      &ptr,
+		String:   "string",
+		Duration: 10 * time.Second,
 	})
 }
