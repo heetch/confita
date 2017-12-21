@@ -1,5 +1,9 @@
 # confita
 
+[![Build Status](https://drone.heetch.net/api/badges/heetch/confita/status.svg)](https://drone.heetch.net/heetch/confita)
+[![Godoc](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](http://godoc.dev.heetch.internal/pkg/github.com/heetch/confita/)
+
+
 confita is a tool that loads configuration from multiple backends and stores it in a struct.
 
 ## Install
