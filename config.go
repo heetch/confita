@@ -67,7 +67,6 @@ func (l *Loader) Load(to interface{}) error {
 			continue
 		}
 
-		var found bool
 		for _, b := range l.backends {
 			select {
 			case <-ctx.Done():
@@ -89,12 +88,7 @@ func (l *Loader) Load(to interface{}) error {
 				return err
 			}
 
-			found = true
 			break
-		}
-
-		if !found {
-			return ErrNotFound
 		}
 	}
 
