@@ -122,3 +122,30 @@ func TestLoad(t *testing.T) {
 		},
 	}, s)
 }
+
+func TestLoadRequired(t *testing.T) {
+	s := struct {
+		Name string `config:"name,required"`
+	}{}
+
+	st := make(store)
+	err := confita.NewLoader(confita.Backends(st)).Load(&s)
+	require.Error(t, err)
+}
+
+func TestLoadIgnored(t *testing.T) {
+	s := struct {
+		Name string `config:"-"`
+		Age  int    `config:"age"`
+	}{}
+
+	st := store{
+		"name": "name",
+		"age":  "10",
+	}
+
+	err := confita.NewLoader(confita.Backends(st)).Load(&s)
+	require.NoError(t, err)
+	require.Equal(t, 10, s.Age)
+	require.Zero(t, s.Name)
+}
