@@ -116,10 +116,6 @@ func TestLoad(t *testing.T) {
 			Int:    math.MaxInt64,
 			String: "string",
 		},
-		StructPtrNil: &nested{
-			Int:    math.MaxInt64,
-			String: "string",
-		},
 		StructPtrNotNil: &nested{
 			Int:    math.MaxInt64,
 			String: "string",

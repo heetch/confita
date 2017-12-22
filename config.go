@@ -78,14 +78,8 @@ func (l *Loader) parseStruct(ctx context.Context, ref *reflect.Value) error {
 
 			continue
 		case typ.Kind() == reflect.Ptr:
-			if value.Type().Elem().Kind() == reflect.Struct {
-				if value.IsNil() {
-					n := reflect.New(value.Type().Elem())
-					value.Set(n)
-					value = n.Elem()
-				} else {
-					value = value.Elem()
-				}
+			if value.Type().Elem().Kind() == reflect.Struct && !value.IsNil() {
+				value = value.Elem()
 
 				err := l.parseStruct(ctx, &value)
 				if err != nil {
