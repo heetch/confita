@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -68,6 +69,11 @@ func (l *Loader) parseStruct(ctx context.Context, ref *reflect.Value) error {
 			continue
 		}
 
+		tag := field.Tag.Get("config")
+		if tag == "-" {
+			continue
+		}
+
 		// if struct or *struct, parse recursively
 		switch {
 		case typ.Kind() == reflect.Struct:
@@ -90,11 +96,21 @@ func (l *Loader) parseStruct(ctx context.Context, ref *reflect.Value) error {
 			}
 		}
 
-		key := field.Tag.Get("config")
-		if key == "" {
+		if tag == "" {
 			continue
 		}
 
+		key := tag
+		var required bool
+
+		if idx := strings.Index(tag, ","); idx != -1 {
+			key = tag[:idx]
+			if tag[idx+1:] == "required" {
+				required = true
+			}
+		}
+
+		var found bool
 		for _, b := range l.backends {
 			select {
 			case <-ctx.Done():
@@ -116,7 +132,12 @@ func (l *Loader) parseStruct(ctx context.Context, ref *reflect.Value) error {
 				return err
 			}
 
+			found = true
 			break
+		}
+
+		if required && !found {
+			return fmt.Errorf("required key '%s' for field '%s' not found", key, field.Name)
 		}
 	}
 
