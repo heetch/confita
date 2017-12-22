@@ -25,8 +25,10 @@ import (
 type Config struct {
   Host        string `config:"host"`
   Port        int    `config:"port"`
-  Interval    uint64 `config:"interval"`
-  DatabaseURI string `config:"databaseUri"`
+  Database struct {
+    URI string            `config:"databaseUri"`
+    Timeout time.Duration `config:"databaseTimeout"`
+  }
 }
 
 func main() {

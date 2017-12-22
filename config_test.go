@@ -23,27 +23,36 @@ func (s store) Get(ctx context.Context, key string) ([]byte, error) {
 }
 
 func TestLoad(t *testing.T) {
+	type nested struct {
+		Int    int    `config:"int"`
+		String string `config:"string"`
+	}
+
 	type testStruct struct {
-		Bool     bool          `config:"bool"`
-		Int      int           `config:"int"`
-		Int8     int8          `config:"int8"`
-		Int16    int16         `config:"int16"`
-		Int32    int32         `config:"int32"`
-		Int64    int64         `config:"int64"`
-		Uint     uint          `config:"uint"`
-		Uint8    uint8         `config:"uint8"`
-		Uint16   uint16        `config:"uint16"`
-		Uint32   uint32        `config:"uint32"`
-		Uint64   uint64        `config:"uint64"`
-		Float32  float32       `config:"float32"`
-		Float64  float64       `config:"float64"`
-		Ptr      *string       `config:"ptr"`
-		String   string        `config:"string"`
-		Duration time.Duration `config:"duration"`
-		Ignored  string
+		Bool            bool          `config:"bool"`
+		Int             int           `config:"int"`
+		Int8            int8          `config:"int8"`
+		Int16           int16         `config:"int16"`
+		Int32           int32         `config:"int32"`
+		Int64           int64         `config:"int64"`
+		Uint            uint          `config:"uint"`
+		Uint8           uint8         `config:"uint8"`
+		Uint16          uint16        `config:"uint16"`
+		Uint32          uint32        `config:"uint32"`
+		Uint64          uint64        `config:"uint64"`
+		Float32         float32       `config:"float32"`
+		Float64         float64       `config:"float64"`
+		Ptr             *string       `config:"ptr"`
+		String          string        `config:"string"`
+		Duration        time.Duration `config:"duration"`
+		Struct          nested
+		StructPtrNil    *nested
+		StructPtrNotNil *nested
+		Ignored         string
 	}
 
 	var s testStruct
+	s.StructPtrNotNil = new(nested)
 
 	boolStore := store{
 		"bool": "true",
@@ -86,7 +95,7 @@ func TestLoad(t *testing.T) {
 	require.NoError(t, err)
 
 	ptr := "ptr"
-	require.EqualValues(t, s, testStruct{
+	require.EqualValues(t, testStruct{
 		Bool:     true,
 		Int:      math.MaxInt64,
 		Int8:     math.MaxInt8,
@@ -103,5 +112,17 @@ func TestLoad(t *testing.T) {
 		Ptr:      &ptr,
 		String:   "string",
 		Duration: 10 * time.Second,
-	})
+		Struct: nested{
+			Int:    math.MaxInt64,
+			String: "string",
+		},
+		StructPtrNil: &nested{
+			Int:    math.MaxInt64,
+			String: "string",
+		},
+		StructPtrNotNil: &nested{
+			Int:    math.MaxInt64,
+			String: "string",
+		},
+	}, s)
 }
