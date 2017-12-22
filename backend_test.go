@@ -28,7 +28,7 @@ func TestEnvBackend(t *testing.T) {
 	t.Run("DifferentCase", func(t *testing.T) {
 		b := EnvBackend()
 
-		os.Setenv("TESTCONFIG2", "ok")
+		os.Setenv("TEST_CONFIG_2", "ok")
 		val, err := b.Get(context.Background(), "testConfig2")
 		require.NoError(t, err)
 		require.Equal(t, "ok", string(val))
