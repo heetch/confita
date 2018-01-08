@@ -4,8 +4,6 @@ import (
 	"context"
 	"os"
 	"strings"
-
-	"github.com/fatih/camelcase"
 )
 
 // A Backend is used to fetch values from a given key.
@@ -27,7 +25,7 @@ func (b *backendFunc) Get(ctx context.Context, key string) ([]byte, error) {
 }
 
 // EnvBackend creates a configuration loader that loads from the environment.
-// If the key is not found, this backend tries again by turning any camelcase key to snakecase and
+// If the key is not found, this backend tries again by turning any kebabcase key to snakecase and
 // lowercase letters to uppercase.
 func EnvBackend() Backend {
 	return BackendFunc(func(ctx context.Context, key string) ([]byte, error) {
@@ -36,12 +34,7 @@ func EnvBackend() Backend {
 			return []byte(val), nil
 		}
 
-		splitted := camelcase.Split(key)
-		for i := range splitted {
-			splitted[i] = strings.ToUpper(splitted[i])
-		}
-
-		key = strings.Join(splitted, "_")
+		key = strings.Replace(strings.ToUpper(key), "-", "_", -1)
 
 		val, ok = os.LookupEnv(key)
 		if ok {

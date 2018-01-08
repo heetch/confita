@@ -29,7 +29,7 @@ func TestEnvBackend(t *testing.T) {
 		b := EnvBackend()
 
 		os.Setenv("TEST_CONFIG_2", "ok")
-		val, err := b.Get(context.Background(), "testConfig2")
+		val, err := b.Get(context.Background(), "test-config-2")
 		require.NoError(t, err)
 		require.Equal(t, "ok", string(val))
 	})
