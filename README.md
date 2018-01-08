@@ -30,8 +30,8 @@ type Config struct {
   Host        string `config:"host"`
   Port        int    `config:"port"`
   Database struct {
-    URI string            `config:"databaseUri,required"`
-    Timeout time.Duration `config:"databaseTimeout"`
+    URI string            `config:"database-uri,required"`
+    Timeout time.Duration `config:"database-timeout"`
     Password string       `config:"-"`
   }
 }
