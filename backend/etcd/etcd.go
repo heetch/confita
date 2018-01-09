@@ -5,7 +5,7 @@ import (
 	"path"
 
 	"github.com/coreos/etcd/clientv3"
-	"github.com/heetch/confita"
+	"github.com/heetch/confita/backend"
 )
 
 // Backend loads keys from etcd.
@@ -30,7 +30,7 @@ func (b *Backend) Get(ctx context.Context, key string) ([]byte, error) {
 	}
 
 	if len(resp.Kvs) == 0 {
-		return nil, confita.ErrNotFound
+		return nil, backend.ErrNotFound
 	}
 
 	return resp.Kvs[0].Value, nil

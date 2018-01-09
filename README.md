@@ -3,8 +3,7 @@
 [![Build Status](https://drone.heetch.net/api/badges/heetch/confita/status.svg)](https://drone.heetch.net/heetch/confita)
 [![Godoc](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](http://godoc.dev.heetch.internal/pkg/github.com/heetch/confita/)
 
-
-confita is a tool that loads configuration from multiple backends and stores it in a struct.
+confita is a library that loads configuration from multiple backends and stores it in a struct.
 
 ## Install
 
@@ -20,6 +19,7 @@ package main
 import (
   "log"
   "time"
+  "context"
 
   "github.com/coreos/etcd/clientv3"
   "github.com/heetch/confita"
@@ -38,10 +38,11 @@ type Config struct {
 
 func main() {
   var cfg Config
+  ctx := context.Background()
 
   // By default, the loader loads keys from the environment.
   loader := confita.NewLoader()
-  err := loader.Load(&cfg)
+  err := loader.Load(ctx, &cfg)
   if err != nil {
     log.Fatal(err)
   }
@@ -56,13 +57,10 @@ func main() {
   defer client.Close()
 
   loader = confita.NewLoader(
-    confita.Backends(
-      confita.EnvBackend(),
-      etcd.NewBackend(client, "prefix"),
-    ),
-    confita.Timeout(5*time.Second),
+    env.NewBackend(),
+    etcd.NewBackend(client, "prefix"),
   )
-  err = loader.Load(&cfg)
+  err = loader.Load(ctx, &cfg)
   if err != nil {
     log.Fatal(err)
   }
