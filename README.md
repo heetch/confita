@@ -1,9 +1,9 @@
-# confita
+# Confita
 
 [![GoDoc](https://godoc.org/github.com/heetch/confita?status.svg)](https://godoc.org/github.com/heetch/confita)
 [![Go Report Card](https://goreportcard.com/badge/github.com/heetch/confita)](https://goreportcard.com/report/github.com/heetch/confita)
 
-confita is a library that loads configuration from multiple backends and stores it in a struct.
+Confita is a library that loads configuration from multiple backends and stores it in a struct.
 
 ## Install
 
@@ -13,7 +13,7 @@ go get -u github.com/heetch/confita
 
 ## Usage
 
-confita scans a struct for `config` tags and calls all the backends one after another until the key is found.
+Confita scans a struct for `config` tags and calls all the backends one after another until the key is found.
 The value is then converted into the type of the field.
 
 ### Struct layout
@@ -28,7 +28,7 @@ type Config struct {
 }
 ```
 
-By default, all fields are optional. With the `required` option, if a key is not found confita will return an error.
+By default, all fields are optional. With the required option, if a key is not found then Confita will return an error.
 
 ```go
 type Config struct {
@@ -49,14 +49,14 @@ type Config struct {
   }
 ```
 
-As a special case, if the field tag is "-", the field is always omitted.
+As a special case, if the field tag is "-", the field is always omitted. This is useful if you want to populate this field on your own.
 
 ```go
 type Config struct {
   // Field is ignored by this package.
   Field float64 `config:"-"`
 
-  // confita scans any structure recursively, the "-" value prevents that.
+  // Confita scans any structure recursively, the "-" value prevents that.
   Client http.Client `config:"-"`
 }
 ```
@@ -69,7 +69,7 @@ Creating a loader:
 loader := confita.NewLoader()
 ```
 
-By default, a confita loader loads all the keys from the environment.
+By default, a Confita loader loads all the keys from the environment.
 A loader can take other configured backends as parameters. For now, only [etcd](https://github.com/coreos/etcd) is supported.
 
 ```go
@@ -95,7 +95,7 @@ err := loader.Load(ctx, &cfg)
 
 ### Default values
 
-If a key is not found, confita won't change the respective struct field. With that in mind, default values can simply be implemented by filling the structure before passing it to confita.
+If a key is not found, Confita won't change the respective struct field. With that in mind, default values can simply be implemented by filling the structure before passing it to Confita.
 
 ```go
 
