@@ -1,5 +1,8 @@
 # confita
 
+[![GoDoc](https://godoc.org/github.com/heetch/confita?status.svg)](https://godoc.org/github.com/heetch/confita)
+[![Go Report Card](https://goreportcard.com/badge/github.com/heetch/confita)](https://goreportcard.com/report/github.com/heetch/confita)
+
 confita is a library that loads configuration from multiple backends and stores it in a struct.
 
 ## Install
