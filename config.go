@@ -8,41 +8,36 @@ import (
 	"strconv"
 	"strings"
 	"time"
-)
 
-var (
-	// ErrNotFound is returned by the backends or by the Load function when the given key is not found.
-	ErrNotFound = errors.New("key not found")
+	"github.com/heetch/confita/backend"
+	"github.com/heetch/confita/backend/env"
 )
 
 // Loader loads configuration keys from backends and stores them is a struct.
 type Loader struct {
-	timeout  time.Duration
-	backends []Backend
+	backends []backend.Backend
 }
 
 // NewLoader creates a Loader. If no backend is specified, the loader uses the environment.
-func NewLoader(options ...Option) *Loader {
-	var l Loader
-	for _, opt := range options {
-		opt(&l)
+func NewLoader(backends ...backend.Backend) *Loader {
+	l := Loader{
+		backends: backends,
 	}
 
 	if len(l.backends) == 0 {
-		l.backends = append(l.backends, EnvBackend())
+		l.backends = append(l.backends, env.NewBackend())
 	}
 
 	return &l
 }
 
 // Load analyses all the fields of the given struct for a "config" tag and queries each backend
-// in order for the corresponding key.
-func (l *Loader) Load(to interface{}) error {
-	ctx := context.Background()
-	if l.timeout != 0 {
-		var cancel func()
-		ctx, cancel = context.WithTimeout(ctx, l.timeout)
-		defer cancel()
+// in order for the corresponding key. The given context can be used for timeout and cancelation.
+func (l *Loader) Load(ctx context.Context, to interface{}) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
 	}
 
 	ref := reflect.ValueOf(to)
@@ -120,7 +115,7 @@ func (l *Loader) parseStruct(ctx context.Context, ref *reflect.Value) error {
 
 			raw, err := b.Get(ctx, key)
 			if err != nil {
-				if err == ErrNotFound {
+				if err == backend.ErrNotFound {
 					continue
 				}
 
@@ -196,22 +191,4 @@ func convert(data string, value *reflect.Value) error {
 	}
 
 	return nil
-}
-
-// An Option is a function that configures a Loader.
-type Option func(*Loader)
-
-// Backends configures the loader to use the given backends.
-// If this option is not used, the loader will load from the environment.
-func Backends(backends ...Backend) func(*Loader) {
-	return func(l *Loader) {
-		l.backends = append(l.backends, backends...)
-	}
-}
-
-// Timeout sets the timeout for the entire configuration load process.
-func Timeout(t time.Duration) func(*Loader) {
-	return func(l *Loader) {
-		l.timeout = t
-	}
 }
