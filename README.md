@@ -10,56 +10,105 @@ go get -u github.com/heetch/confita
 
 ## Usage
 
+confita scans a struct for `config` tags and calls all the backends one after another until the key is found.
+The value is then converted into the type of the field.
+
+### Struct layout
+
+Go primitives are supported:
+
 ```go
-package main
+type Config struct {
+  Host        string        `config:"host"`
+  Port        uint32        `config:"port"`
+  Timeout     time.Duration `config:"timeout"`
+}
+```
 
-import (
-  "log"
-  "time"
-  "context"
+By default, all fields are optional. With the `required` option, if a key is not found confita will return an error.
 
-  "github.com/coreos/etcd/clientv3"
-  "github.com/heetch/confita"
-  "github.com/heetch/confita/etcd"
+```go
+type Config struct {
+  Addr        string        `config:"addr,required"`
+  Timeout     time.Duration `config:"timeout"`
+}
+```
+
+Nested structs are supported too:
+
+```go
+type Config struct {
+  Host        string        `config:"host"`
+  Port        uint32        `config:"port"`
+  Timeout time.Duration     `config:"timeout"`
+  Database struct {
+    URI string              `config:"database-uri,required"`
+  }
+```
+
+As a special case, if the field tag is "-", the field is always omitted.
+
+```go
+type Config struct {
+  // Field is ignored by this package.
+  Field float64 `config:"-"`
+
+  // confita scans any structure recursively, the "-" value prevents that.
+  Client http.Client `config:"-"`
+}
+```
+
+### Loading configuration
+
+Creating a loader:
+
+```go
+loader := confita.NewLoader()
+```
+
+By default, a confita loader loads all the keys from the environment.
+A loader can take other configured backends as parameters. For now, only [etcd](https://github.com/coreos/etcd) is supported.
+
+```go
+loader := confita.NewLoader(
+  env.NewBackend(),
+  etcd.NewBackend(etcdClientv3, "namespace"),
 )
+```
+
+Loading configuration:
+
+```go
+err := loader.Load(context.Background(), &cfg)
+```
+
+Since loading configuration can take time when used with multiple remote backends, context can be used for timeout and cancelation:
+
+```go
+ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+defer cancel()
+err := loader.Load(ctx, &cfg)
+```
+
+### Default values
+
+If a key is not found, confita won't change the respective struct field. With that in mind, default values can simply be implemented by filling the structure before passing it to confita.
+
+```go
 
 type Config struct {
-  Host        string `config:"host"`
-  Port        int    `config:"port"`
-  Database struct {
-    URI string            `config:"database-uri,required"`
-    Timeout time.Duration `config:"database-timeout"`
-    Password string       `config:"-"`
-  }
+  Host        string        `config:"host"`
+  Port        uint32        `config:"port"`
+  Timeout     time.Duration `config:"timeout"`
+  Password    string        `config:"password,required"`
 }
 
-func main() {
-  var cfg Config
-  ctx := context.Background()
-
-  // By default, the loader loads keys from the environment.
-  loader := confita.NewLoader()
-  err := loader.Load(ctx, &cfg)
-  if err != nil {
-    log.Fatal(err)
-  }
-
-  // From the environment and etcd, with a timeout of 5 seconds.
-  client, err := clientv3.New(clientv3.Config{
-    Endpoints: endpoints,
-  })
-  if err != nil {
-    log.Fatal(err)
-  }
-  defer client.Close()
-
-  loader = confita.NewLoader(
-    env.NewBackend(),
-    etcd.NewBackend(client, "prefix"),
-  )
-  err = loader.Load(ctx, &cfg)
-  if err != nil {
-    log.Fatal(err)
-  }
+// default values
+cfg := Config{
+  Host: "127.0.0.1",
+  Port: "5656",
+  Timeout: 5 * time.Second,
 }
+
+err := config.NewLoader().Load(context.Background(), &cfg)
 ```
