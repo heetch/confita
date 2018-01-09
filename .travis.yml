@@ -1,0 +1,24 @@
+sudo: required
+
+language: go
+
+services:
+  - docker
+
+before_install:
+  - wget "https://github.com/Masterminds/glide/releases/download/v0.13.1/glide-v0.13.1-linux-amd64.tar.gz"
+  - mkdir -p $GOPATH/bin
+  - tar -vxz -C $GOPATH/bin --strip=1 -f glide-v0.13.1-linux-amd64.tar.gz
+  - export PATH="$GOPATH/bin:$PATH"
+  - docker run -d -p 2379:2379 quay.io/coreos/etcd /usr/local/bin/etcd -advertise-client-urls http://0.0.0.0:2379 -listen-client-urls http://0.0.0.0:2379
+
+install: glide install
+
+go:
+  - 1.7
+  - 1.8
+  - 1.9
+  - tip
+
+script:
+  - go test -v -race -cover -timeout=1m $(glide novendor)

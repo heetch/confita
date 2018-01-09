@@ -1,5 +1,6 @@
 # Confita
 
+[![Build Status](https://travis-ci.org/heetch/confita.svg?branch=master)](https://travis-ci.org/heetch/confita)
 [![GoDoc](https://godoc.org/github.com/heetch/confita?status.svg)](https://godoc.org/github.com/heetch/confita)
 [![Go Report Card](https://goreportcard.com/badge/github.com/heetch/confita)](https://goreportcard.com/report/github.com/heetch/confita)
 
