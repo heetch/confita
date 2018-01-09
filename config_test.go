@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/heetch/confita"
+	"github.com/heetch/confita/backend"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,10 +17,21 @@ type store map[string]string
 func (s store) Get(ctx context.Context, key string) ([]byte, error) {
 	data, ok := s[key]
 	if !ok {
-		return nil, confita.ErrNotFound
+		return nil, backend.ErrNotFound
 	}
 
 	return []byte(data), nil
+}
+
+type longRunningStore time.Duration
+
+func (s longRunningStore) Get(ctx context.Context, key string) ([]byte, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case <-time.After(time.Duration(s)):
+		return []byte(time.Now().String()), nil
+	}
 }
 
 func TestLoad(t *testing.T) {
@@ -85,13 +97,13 @@ func TestLoad(t *testing.T) {
 		"duration": "10s",
 	}
 
-	loader := confita.NewLoader(confita.Backends(
+	loader := confita.NewLoader(
 		boolStore,
 		intStore,
 		uintStore,
 		floatStore,
-		otherStore))
-	err := loader.Load(&s)
+		otherStore)
+	err := loader.Load(context.Background(), &s)
 	require.NoError(t, err)
 
 	ptr := "ptr"
@@ -129,7 +141,7 @@ func TestLoadRequired(t *testing.T) {
 	}{}
 
 	st := make(store)
-	err := confita.NewLoader(confita.Backends(st)).Load(&s)
+	err := confita.NewLoader(st).Load(context.Background(), &s)
 	require.Error(t, err)
 }
 
@@ -144,8 +156,38 @@ func TestLoadIgnored(t *testing.T) {
 		"age":  "10",
 	}
 
-	err := confita.NewLoader(confita.Backends(st)).Load(&s)
+	err := confita.NewLoader(st).Load(context.Background(), &s)
 	require.NoError(t, err)
 	require.Equal(t, 10, s.Age)
 	require.Zero(t, s.Name)
+}
+
+func TestLoadContextCancel(t *testing.T) {
+	s := struct {
+		Name string `config:"-"`
+		Age  int    `config:"age"`
+	}{}
+
+	st := store{
+		"name": "name",
+		"age":  "10",
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	err := confita.NewLoader(st).Load(ctx, &s)
+	require.Equal(t, context.Canceled, err)
+}
+
+func TestLoadContextTimeout(t *testing.T) {
+	s := struct {
+		Name string `config:"-"`
+		Age  int    `config:"age"`
+	}{}
+
+	st := longRunningStore(10 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+	err := confita.NewLoader(st).Load(ctx, &s)
+	require.Equal(t, context.DeadlineExceeded, err)
 }

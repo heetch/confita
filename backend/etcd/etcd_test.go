@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/coreos/etcd/clientv3"
-	"github.com/heetch/confita"
+	"github.com/heetch/confita/backend"
 	"github.com/stretchr/testify/require"
 )
 
@@ -18,5 +18,5 @@ func TestEtcdBackend(t *testing.T) {
 
 	b := NewBackend(client, "prefix")
 	_, err = b.Get(context.Background(), "something that doesn't exist")
-	require.Equal(t, confita.ErrNotFound, err)
+	require.Equal(t, backend.ErrNotFound, err)
 }
