@@ -112,3 +112,7 @@ cfg := Config{
 
 err := config.NewLoader().Load(context.Background(), &cfg)
 ```
+
+## License
+
+The library is released under the MIT license. See LICENSE file.
