@@ -114,7 +114,7 @@ cfg := Config{
   Timeout: 5 * time.Second,
 }
 
-err := config.NewLoader().Load(context.Background(), &cfg)
+err := confita.NewLoader().Load(context.Background(), &cfg)
 ```
 
 ## License
