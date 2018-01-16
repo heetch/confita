@@ -11,6 +11,7 @@ before_install:
   - tar -vxz -C $GOPATH/bin --strip=1 -f glide-v0.13.1-linux-amd64.tar.gz
   - export PATH="$GOPATH/bin:$PATH"
   - docker run -d -p 2379:2379 quay.io/coreos/etcd /usr/local/bin/etcd -advertise-client-urls http://0.0.0.0:2379 -listen-client-urls http://0.0.0.0:2379
+  - docker run -d -p 8500:8500 --name consul consul
 
 install: glide install
 
