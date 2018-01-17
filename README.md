@@ -71,12 +71,13 @@ loader := confita.NewLoader()
 ```
 
 By default, a Confita loader loads all the keys from the environment.
-A loader can take other configured backends as parameters. For now, only [etcd](https://github.com/coreos/etcd) is supported.
+A loader can take other configured backends as parameters. For now, [etcd](https://github.com/coreos/etcd) and [Consul](https://www.consul.io/) are supported.
 
 ```go
 loader := confita.NewLoader(
   env.NewBackend(),
   etcd.NewBackend(etcdClientv3, "namespace"),
+  consul.NewBackend(consulClient, "namespace"),
 )
 ```
 
