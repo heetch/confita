@@ -7,13 +7,13 @@ import (
 	"github.com/heetch/confita/backend"
 )
 
-type apiVault interface {
+type vaultAPI interface {
 	Read(p string) (*api.Secret, error)
 }
 
 // Backend loads keys from Vault
 type Backend struct {
-	client apiVault
+	client vaultAPI
 	path   string
 }
 

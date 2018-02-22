@@ -10,9 +10,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type clientMock struct{}
+type mockClient struct{}
 
-func (c *clientMock) Read(p string) (*api.Secret, error) {
+func (c *mockClient) Read(p string) (*api.Secret, error) {
 	if p == "wrong/path" {
 		return nil, nil
 	}
@@ -26,7 +26,7 @@ func (c *clientMock) Read(p string) (*api.Secret, error) {
 
 func TestGet(t *testing.T) {
 	b := Backend{
-		client: &clientMock{},
+		client: &mockClient{},
 		path:   "good/path",
 	}
 
@@ -44,7 +44,7 @@ func TestGet(t *testing.T) {
 
 func TestGetWrongPath(t *testing.T) {
 	b := Backend{
-		client: &clientMock{},
+		client: &mockClient{},
 		path:   "wrong/path",
 	}
 
