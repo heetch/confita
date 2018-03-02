@@ -2,6 +2,7 @@ package vault
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/vault/api"
 	"github.com/heetch/confita/backend"
@@ -33,7 +34,7 @@ func (b *Backend) Get(ctx context.Context, key string) ([]byte, error) {
 	}
 
 	if secret == nil {
-		return nil, backend.ErrNotFound
+		return nil, fmt.Errorf("secret not found at the following path: %s", b.path)
 	}
 
 	if v, ok := secret.Data[key]; ok {
