@@ -37,9 +37,7 @@ func TestGet(t *testing.T) {
 	assert.Equal(t, "baz", string(v))
 
 	_, err = b.Get(ctx, "bar")
-	require.Error(t, err)
-
-	assert.EqualError(t, backend.ErrNotFound, err.Error())
+	require.EqualError(t, err, backend.ErrNotFound.Error())
 }
 
 func TestGetWrongPath(t *testing.T) {
@@ -50,7 +48,5 @@ func TestGetWrongPath(t *testing.T) {
 
 	ctx := context.Background()
 	_, err := b.Get(ctx, "foo")
-	require.Error(t, err)
-
-	assert.EqualError(t, backend.ErrNotFound, err.Error())
+	require.EqualError(t, err, "secret not found at the following path: wrong/path")
 }
