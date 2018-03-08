@@ -2,6 +2,7 @@ package confita_test
 
 import (
 	"context"
+	"encoding/json"
 	"math"
 	"strconv"
 	"testing"
@@ -32,6 +33,21 @@ func (s longRunningStore) Get(ctx context.Context, key string) ([]byte, error) {
 	case <-time.After(time.Duration(s)):
 		return []byte(time.Now().String()), nil
 	}
+}
+
+type valueUnmarshaler store
+
+func (k valueUnmarshaler) Get(ctx context.Context, key string) ([]byte, error) {
+	return store(k).Get(ctx, key)
+}
+
+func (k valueUnmarshaler) UnmarshalValue(ctx context.Context, key string, to interface{}) error {
+	data, err := store(k).Get(ctx, key)
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(data, to)
 }
 
 func TestLoad(t *testing.T) {
@@ -190,4 +206,23 @@ func TestLoadContextTimeout(t *testing.T) {
 	defer cancel()
 	err := confita.NewLoader(st).Load(ctx, &s)
 	require.Equal(t, context.DeadlineExceeded, err)
+}
+
+func TestLoadFromValueUnmarshaler(t *testing.T) {
+	s := struct {
+		Name    string `config:"name"`
+		Age     int    `config:"age"`
+		Ignored string `config:"-"`
+	}{}
+
+	st := valueUnmarshaler{
+		"name": `"name"`,
+		"age":  "10",
+	}
+
+	err := confita.NewLoader(st).Load(context.Background(), &s)
+	require.NoError(t, err)
+	require.Equal(t, "name", s.Name)
+	require.Equal(t, 10, s.Age)
+	require.Zero(t, s.Ignored)
 }

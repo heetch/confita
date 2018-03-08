@@ -27,3 +27,8 @@ type backendFunc struct {
 func (b *backendFunc) Get(ctx context.Context, key string) ([]byte, error) {
 	return b.fn(ctx, key)
 }
+
+// A ValueUnmarshaler decodes a value identified by a key into a target.
+type ValueUnmarshaler interface {
+	UnmarshalValue(ctx context.Context, key string, to interface{}) error
+}
