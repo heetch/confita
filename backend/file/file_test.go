@@ -68,6 +68,17 @@ func TestFileBackend(t *testing.T) {
 		testLoad(t, path)
 	})
 
+	t.Run("YAML", func(t *testing.T) {
+		path, cleanup := createTempFile(t, "config.yml", `
+  name: "some name"
+  age: 10
+  timeout: 10ns
+`)
+		defer cleanup()
+
+		testLoad(t, path)
+	})
+
 	t.Run("Unsupported extension", func(t *testing.T) {
 		path, cleanup := createTempFile(t, "config.xml", `{
 			"name": "some name"
@@ -92,6 +103,20 @@ func TestFileBackend(t *testing.T) {
 			"age": 10,
 			"timeout": 10
 		}`)
+		defer cleanup()
+
+		b := file.NewBackend(path)
+
+		var name string
+		err := b.UnmarshalKey(context.Background(), "name", &name)
+		require.Equal(t, backend.ErrNotFound, err)
+	})
+
+	t.Run("YAMl Key not found", func(t *testing.T) {
+		path, cleanup := createTempFile(t, "config.yml", `
+  age: 10
+  timeout: 10ns
+`)
 		defer cleanup()
 
 		b := file.NewBackend(path)

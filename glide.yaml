@@ -10,6 +10,8 @@ import:
   - api
 - package: github.com/pkg/errors
   version: ^0.8.0
+- package: github.com/go-yaml/yaml
+  version: ^2.0.0
 testImport:
 - package: github.com/stretchr/testify
   version: ^1.1.4

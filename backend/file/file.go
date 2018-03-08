@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/go-yaml/yaml"
 	"github.com/heetch/confita/backend"
 	"github.com/pkg/errors"
 )
@@ -35,8 +36,14 @@ func (b *Backend) loadFile() error {
 	switch ext := filepath.Ext(b.path); ext {
 	case ".json":
 		var j jsonConfig
-		err = json.NewDecoder(f).Decode(&j.content)
+		err = json.NewDecoder(f).Decode(&j)
 		b.unmarshaler = &j
+	case ".yml":
+		fallthrough
+	case ".yaml":
+		var y yamlConfig
+		err = yaml.NewDecoder(f).Decode(&y)
+		b.unmarshaler = &y
 	default:
 		err = errors.Errorf("unsupported extension \"%s\"", ext)
 	}
@@ -67,15 +74,34 @@ func (b *Backend) Get(ctx context.Context, key string) ([]byte, error) {
 	return nil, errors.New("not implemented")
 }
 
-type jsonConfig struct {
-	content map[string]json.RawMessage
-}
+type jsonConfig map[string]json.RawMessage
 
-func (j *jsonConfig) UnmarshalKey(_ context.Context, key string, to interface{}) error {
-	v, ok := j.content[key]
+func (j jsonConfig) UnmarshalKey(_ context.Context, key string, to interface{}) error {
+	v, ok := j[key]
 	if !ok {
 		return backend.ErrNotFound
 	}
 
 	return json.Unmarshal(v, to)
+}
+
+type yamlConfig map[string]yamlRawMessage
+
+func (y yamlConfig) UnmarshalKey(_ context.Context, key string, to interface{}) error {
+	v, ok := y[key]
+	if !ok {
+		return backend.ErrNotFound
+	}
+
+	return v.unmarshal(to)
+}
+
+// used to postpone yaml unmarshaling
+type yamlRawMessage struct {
+	unmarshal func(interface{}) error
+}
+
+func (msg *yamlRawMessage) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	msg.unmarshal = unmarshal
+	return nil
 }
