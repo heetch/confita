@@ -16,9 +16,8 @@ before_install:
 install: glide install
 
 go:
-  - 1.7
-  - 1.8
   - 1.9
+  - "1.10"
   - tip
 
 script:
