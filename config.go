@@ -113,6 +113,15 @@ func (l *Loader) parseStruct(ctx context.Context, ref *reflect.Value) error {
 			default:
 			}
 
+			if u, ok := b.(backend.KeyUnmarshaler); ok {
+				err := u.UnmarshalKey(ctx, key, value.Addr().Interface())
+				if err != nil && err != backend.ErrNotFound {
+					return err
+				}
+
+				continue
+			}
+
 			raw, err := b.Get(ctx, key)
 			if err != nil {
 				if err == backend.ErrNotFound {

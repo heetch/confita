@@ -27,3 +27,7 @@ type backendFunc struct {
 func (b *backendFunc) Get(ctx context.Context, key string) ([]byte, error) {
 	return b.fn(ctx, key)
 }
+
+type KeyUnmarshaler interface {
+	UnmarshalKey(ctx context.Context, key string, to interface{}) error
+}
