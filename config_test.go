@@ -35,13 +35,13 @@ func (s longRunningStore) Get(ctx context.Context, key string) ([]byte, error) {
 	}
 }
 
-type keyUnmarshaler store
+type valueUnmarshaler store
 
-func (k keyUnmarshaler) Get(ctx context.Context, key string) ([]byte, error) {
+func (k valueUnmarshaler) Get(ctx context.Context, key string) ([]byte, error) {
 	return store(k).Get(ctx, key)
 }
 
-func (k keyUnmarshaler) UnmarshalKey(ctx context.Context, key string, to interface{}) error {
+func (k valueUnmarshaler) UnmarshalValue(ctx context.Context, key string, to interface{}) error {
 	data, err := store(k).Get(ctx, key)
 	if err != nil {
 		return err
@@ -208,14 +208,14 @@ func TestLoadContextTimeout(t *testing.T) {
 	require.Equal(t, context.DeadlineExceeded, err)
 }
 
-func TestLoadFromKeyUnmarshaler(t *testing.T) {
+func TestLoadFromValueUnmarshaler(t *testing.T) {
 	s := struct {
 		Name    string `config:"name"`
 		Age     int    `config:"age"`
 		Ignored string `config:"-"`
 	}{}
 
-	st := keyUnmarshaler{
+	st := valueUnmarshaler{
 		"name": `"name"`,
 		"age":  "10",
 	}

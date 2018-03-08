@@ -49,7 +49,7 @@ func TestFileBackend(t *testing.T) {
 		b := file.NewBackend(path)
 
 		for _, test := range tests {
-			err := b.UnmarshalKey(context.Background(), test.key, test.target)
+			err := b.UnmarshalValue(context.Background(), test.key, test.target)
 			require.NoError(t, err)
 			// dirty trick to fetch the actual value instead of its pointer
 			actual := reflect.Indirect(reflect.ValueOf(test.target)).Interface()
@@ -87,14 +87,14 @@ func TestFileBackend(t *testing.T) {
 
 		b := file.NewBackend(path)
 		var name string
-		err := b.UnmarshalKey(context.Background(), "name", &name)
+		err := b.UnmarshalValue(context.Background(), "name", &name)
 		require.Error(t, err)
 	})
 
 	t.Run("File not found", func(t *testing.T) {
 		b := file.NewBackend("some path")
 		var name string
-		err := b.UnmarshalKey(context.Background(), "name", &name)
+		err := b.UnmarshalValue(context.Background(), "name", &name)
 		require.Error(t, err)
 	})
 
@@ -108,7 +108,7 @@ func TestFileBackend(t *testing.T) {
 		b := file.NewBackend(path)
 
 		var name string
-		err := b.UnmarshalKey(context.Background(), "name", &name)
+		err := b.UnmarshalValue(context.Background(), "name", &name)
 		require.Equal(t, backend.ErrNotFound, err)
 	})
 
@@ -122,7 +122,7 @@ func TestFileBackend(t *testing.T) {
 		b := file.NewBackend(path)
 
 		var name string
-		err := b.UnmarshalKey(context.Background(), "name", &name)
+		err := b.UnmarshalValue(context.Background(), "name", &name)
 		require.Equal(t, backend.ErrNotFound, err)
 	})
 }

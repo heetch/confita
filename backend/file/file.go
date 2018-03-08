@@ -15,7 +15,7 @@ import (
 // It supports json and yaml formats.
 type Backend struct {
 	path        string
-	unmarshaler backend.KeyUnmarshaler
+	unmarshaler backend.ValueUnmarshaler
 }
 
 // NewBackend creates a configuration loader that loads from a file.
@@ -51,9 +51,9 @@ func (b *Backend) loadFile() error {
 	return errors.Wrapf(err, "failed to decode file \"%s\"", b.path)
 }
 
-// UnmarshalKey unmarshals the given key directly to the given target.
+// UnmarshalValue unmarshals the given key directly to the given target.
 // It returns an error if the underlying file cannot be loaded.
-func (b *Backend) UnmarshalKey(ctx context.Context, key string, to interface{}) error {
+func (b *Backend) UnmarshalValue(ctx context.Context, key string, to interface{}) error {
 	if b.unmarshaler == nil {
 		err := b.loadFile()
 		if err != nil {
@@ -61,7 +61,7 @@ func (b *Backend) UnmarshalKey(ctx context.Context, key string, to interface{}) 
 		}
 	}
 
-	err := b.unmarshaler.UnmarshalKey(ctx, key, to)
+	err := b.unmarshaler.UnmarshalValue(ctx, key, to)
 	if err == backend.ErrNotFound {
 		return err
 	}
@@ -76,7 +76,7 @@ func (b *Backend) Get(ctx context.Context, key string) ([]byte, error) {
 
 type jsonConfig map[string]json.RawMessage
 
-func (j jsonConfig) UnmarshalKey(_ context.Context, key string, to interface{}) error {
+func (j jsonConfig) UnmarshalValue(_ context.Context, key string, to interface{}) error {
 	v, ok := j[key]
 	if !ok {
 		return backend.ErrNotFound
@@ -87,7 +87,7 @@ func (j jsonConfig) UnmarshalKey(_ context.Context, key string, to interface{}) 
 
 type yamlConfig map[string]yamlRawMessage
 
-func (y yamlConfig) UnmarshalKey(_ context.Context, key string, to interface{}) error {
+func (y yamlConfig) UnmarshalValue(_ context.Context, key string, to interface{}) error {
 	v, ok := y[key]
 	if !ok {
 		return backend.ErrNotFound
