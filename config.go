@@ -97,21 +97,36 @@ func (l *Loader) parseStruct(ctx context.Context, ref *reflect.Value) error {
 
 		key := tag
 		var required bool
+		var bcknd string
 
 		if idx := strings.Index(tag, ","); idx != -1 {
 			key = tag[:idx]
-			if tag[idx+1:] == "required" {
-				required = true
+			opts := strings.Split(tag[idx+1:], ",")
+
+			for _, o := range opts {
+				if o == "required" {
+					required = true
+				}
+
+				if strings.HasPrefix(o, "backend=") {
+					bcknd = o[len("backend="):]
+				}
 			}
 		}
 
 		var found bool
+		var backendFound bool
 		for _, b := range l.backends {
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
 			default:
 			}
+
+			if bcknd != "" && bcknd != b.Name() {
+				continue
+			}
+			backendFound = true
 
 			if u, ok := b.(backend.ValueUnmarshaler); ok {
 				err := u.UnmarshalValue(ctx, key, value.Addr().Interface())
@@ -138,6 +153,10 @@ func (l *Loader) parseStruct(ctx context.Context, ref *reflect.Value) error {
 
 			found = true
 			break
+		}
+
+		if bcknd != "" && !backendFound {
+			return fmt.Errorf("the backend: '%s' is not supported", bcknd)
 		}
 
 		if required && !found {

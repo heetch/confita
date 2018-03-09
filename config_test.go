@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/heetch/confita"
 	"github.com/heetch/confita/backend"
 	"github.com/stretchr/testify/require"
@@ -24,6 +26,10 @@ func (s store) Get(ctx context.Context, key string) ([]byte, error) {
 	return []byte(data), nil
 }
 
+func (store) Name() string {
+	return "store"
+}
+
 type longRunningStore time.Duration
 
 func (s longRunningStore) Get(ctx context.Context, key string) ([]byte, error) {
@@ -33,6 +39,10 @@ func (s longRunningStore) Get(ctx context.Context, key string) ([]byte, error) {
 	case <-time.After(time.Duration(s)):
 		return []byte(time.Now().String()), nil
 	}
+}
+
+func (longRunningStore) Name() string {
+	return "longRunningStore"
 }
 
 type valueUnmarshaler store
@@ -48,6 +58,10 @@ func (k valueUnmarshaler) UnmarshalValue(ctx context.Context, key string, to int
 	}
 
 	return json.Unmarshal(data, to)
+}
+
+func (valueUnmarshaler) Name() string {
+	return "valueUnmarshaler"
 }
 
 func TestLoad(t *testing.T) {
@@ -225,4 +239,127 @@ func TestLoadFromValueUnmarshaler(t *testing.T) {
 	require.Equal(t, "name", s.Name)
 	require.Equal(t, 10, s.Age)
 	require.Zero(t, s.Ignored)
+}
+
+type backendMock struct {
+	store  map[string]string
+	called int
+	name   string
+}
+
+func (b *backendMock) Get(ctx context.Context, key string) ([]byte, error) {
+	b.called++
+	data, ok := b.store[key]
+	if !ok {
+		return nil, backend.ErrNotFound
+	}
+
+	return []byte(data), nil
+}
+
+func (b *backendMock) Name() string {
+	return b.name
+}
+
+func TestBackendTag(t *testing.T) {
+	type test struct {
+		Tikka  string `config:"tikka,backend=store"`
+		Cheese string `config:"cheese,required,backend=backendCalled"`
+	}
+
+	backendNotCalled := &backendMock{
+		store: make(map[string]string),
+		name:  "backendNotCalled",
+	}
+	backendNotCalled.store["cheese"] = "nan"
+
+	myStore := make(store)
+	myStore["tikka"] = "masala"
+
+	t.Run("OK", func(t *testing.T) {
+		backendCalled := &backendMock{
+			store: make(map[string]string),
+			name:  "backendCalled",
+		}
+		backendCalled.store["cheese"] = "nan"
+
+		ldr := confita.NewLoader(myStore, backendCalled, backendNotCalled)
+
+		var cfg test
+		err := ldr.Load(context.Background(), &cfg)
+		require.NoError(t, err)
+
+		assert.Equal(t, "nan", cfg.Cheese)
+		assert.Equal(t, "masala", cfg.Tikka)
+		assert.Equal(t, 1, backendCalled.called)
+		assert.Equal(t, 0, backendNotCalled.called)
+	})
+
+	t.Run("NOK", func(t *testing.T) {
+		backendCalled := &backendMock{
+			store: make(map[string]string),
+			name:  "backendCalled",
+		}
+
+		ldr := confita.NewLoader(myStore, backendCalled, backendNotCalled)
+
+		var cfg test
+		err := ldr.Load(context.Background(), &cfg)
+		require.EqualError(t, err, "required key 'cheese' for field 'Cheese' not found")
+
+		assert.Equal(t, 1, backendCalled.called)
+		assert.Equal(t, 0, backendNotCalled.called)
+	})
+}
+
+func TestTags(t *testing.T) {
+
+	t.Run("BadRequired", func(t *testing.T) {
+		type test struct {
+			Key string `config:"key,rrequiredd,backend=store"`
+		}
+
+		myStore := make(store)
+		myStore["oups"] = "value"
+
+		ldr := confita.NewLoader(myStore)
+
+		var cfg test
+		err := ldr.Load(context.Background(), &cfg)
+		require.NoError(t, err)
+
+		assert.Equal(t, "", cfg.Key)
+	})
+
+	t.Run("BadBackendValue", func(t *testing.T) {
+		type test struct {
+			Key string `config:"key,backend=stor"`
+		}
+
+		myStore := make(store)
+		myStore["key"] = "value"
+
+		ldr := confita.NewLoader(myStore)
+
+		var cfg test
+		err := ldr.Load(context.Background(), &cfg)
+		require.Error(t, err)
+	})
+
+	t.Run("BadTagsOrder", func(t *testing.T) {
+		type test struct {
+			Key string `config:"backend=store,key"`
+		}
+
+		myStore := make(store)
+		myStore["key"] = "value"
+
+		ldr := confita.NewLoader(myStore)
+
+		var cfg test
+		err := ldr.Load(context.Background(), &cfg)
+		require.NoError(t, err)
+
+		assert.Equal(t, "", cfg.Key)
+	})
 }

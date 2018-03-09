@@ -71,6 +71,18 @@ type Config struct {
 }
 ```
 
+### Backend tag
+By default, Confita queries each backend one after another until a key is found. However, in order to avoid some useless processing the `backend` tag can be specified to describe in which backend this key is expected to be found.
+This is especially useful when the location of the key is known beforehand.
+
+```go
+type Config struct {
+  Host        string        `config:"host,backend=env"`
+  Port        uint32        `config:"port,required,backend=etcd"`
+  Timeout     time.Duration `config:"timeout"`
+}
+```
+
 ### Loading configuration
 
 Creating a loader:
