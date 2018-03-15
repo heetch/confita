@@ -8,13 +8,9 @@ import (
 	"github.com/heetch/confita/backend"
 )
 
-type vaultAPI interface {
-	Read(p string) (*api.Secret, error)
-}
-
 // Backend loads keys from Vault
 type Backend struct {
-	client vaultAPI
+	client *api.Logical
 	path   string
 }
 
