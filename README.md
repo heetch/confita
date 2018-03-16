@@ -6,6 +6,15 @@
 
 Confita is a library that loads configuration from multiple backends and stores it in a struct.
 
+## Supported backends
+
+- Environment variables
+- JSON files
+- Yaml files
+- [etcd](https://github.com/coreos/etcd)
+- [Consul](https://www.consul.io/)
+- [Vault](https://www.vaultproject.io/)
+
 ## Install
 
 ```sh
@@ -73,13 +82,6 @@ loader := confita.NewLoader()
 By default, a Confita loader loads all the keys from the environment.
 A loader can take other configured backends as parameters.
 
-#### Supported backends:
-
-- Environment variables
-- JSON files
-- Yaml files
-- [etcd](https://github.com/coreos/etcd)
-- [Consul](https://www.consul.io/)
 
 ```go
 loader := confita.NewLoader(
