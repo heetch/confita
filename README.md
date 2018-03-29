@@ -71,18 +71,6 @@ type Config struct {
 }
 ```
 
-### Backend tag
-By default, Confita queries each backend one after another until a key is found. However, in order to avoid some useless processing the `backend` tag can be specified to describe in which backend this key is expected to be found.
-This is especially useful when the location of the key is known beforehand.
-
-```go
-type Config struct {
-  Host        string        `config:"host,backend=env"`
-  Port        uint32        `config:"port,required,backend=etcd"`
-  Timeout     time.Duration `config:"timeout"`
-}
-```
-
 ### Loading configuration
 
 Creating a loader:
@@ -93,7 +81,6 @@ loader := confita.NewLoader()
 
 By default, a Confita loader loads all the keys from the environment.
 A loader can take other configured backends as parameters.
-
 
 ```go
 loader := confita.NewLoader(
@@ -140,6 +127,19 @@ cfg := Config{
 }
 
 err := confita.NewLoader().Load(context.Background(), &cfg)
+```
+
+### Backend option
+
+By default, Confita queries each backend one after another until a key is found. However, in order to avoid some useless processing the `backend` option can be specified to describe in which backend this key is expected to be found.
+This is especially useful when the location of the key is known beforehand.
+
+```go
+type Config struct {
+  Host        string        `config:"host,backend=env"`
+  Port        uint32        `config:"port,required,backend=etcd"`
+  Timeout     time.Duration `config:"timeout"`
+}
 ```
 
 ## License
