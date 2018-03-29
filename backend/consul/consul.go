@@ -37,3 +37,8 @@ func (b *Backend) Get(ctx context.Context, key string) ([]byte, error) {
 
 	return kv.Value, nil
 }
+
+// Name returns the name of the backend.
+func (b *Backend) Name() string {
+	return "consul"
+}

@@ -126,17 +126,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/heetch/confita"
-  packages = [
-    ".",
-    "backend",
-    "backend/env",
-    "backend/file"
-  ]
-  revision = "25d987e4489c2d352319775aad3d93708ec76858"
-
-[[projects]]
-  branch = "master"
   name = "github.com/mitchellh/go-homedir"
   packages = ["."]
   revision = "b8bc1bf767474819792c23f32d8286a45736f1c6"
@@ -255,6 +244,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "8a53eaf162b27b8fbe8170d1cb8f289a3651dc6cd2da752678eacfb04d5846d6"
+  inputs-digest = "d7e2815c5a5540ba66d586045277848589a2145bb8ada25465a1d217d2f43a85"
   solver-name = "gps-cdcl"
   solver-version = 1
