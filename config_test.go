@@ -3,7 +3,11 @@ package confita_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"math"
+	"os"
+	"path/filepath"
 	"strconv"
 	"testing"
 	"time"
@@ -12,6 +16,7 @@ import (
 
 	"github.com/heetch/confita"
 	"github.com/heetch/confita/backend"
+	"github.com/heetch/confita/backend/file"
 	"github.com/stretchr/testify/require"
 )
 
@@ -362,4 +367,52 @@ func TestTags(t *testing.T) {
 
 		assert.Equal(t, "", cfg.Key)
 	})
+}
+
+func TestToml(t *testing.T) {
+	type Server struct {
+		IP       string `config:"ip"`
+		Port     string `config:"port"`
+		Location string `config:"location"`
+	}
+
+	type servers map[string]Server
+
+	path, cleanup := createTempFile(t, "config.toml", `
+		[alpha]
+			ip = "10.0.0.1"
+			port = "1234"
+			location = "guyanzoo"
+	`)
+	defer cleanup()
+	var err error
+	var s Server
+	l := confita.NewLoader(file.NewBackend(path))
+	err = l.Load(context.Background(), &s)
+	require.NoError(t, err)
+
+	fmt.Println(s)
+
+	// _, err = toml.DecodeFile(path, &s)
+	// require.NoError(t, err)
+	// fmt.Println(s)
+}
+
+func createTempFile(t *testing.T, name, content string) (string, func()) {
+	t.Helper()
+
+	dir, err := ioutil.TempDir("", "confita")
+	require.NoError(t, err)
+
+	path := filepath.Join(dir, name)
+	f, err := os.Create(path)
+	require.NoError(t, err)
+
+	fmt.Fprintf(f, content)
+
+	require.NoError(t, f.Close())
+
+	return path, func() {
+		require.NoError(t, os.RemoveAll(path))
+	}
 }

@@ -3,9 +3,11 @@ package file
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 
+	"github.com/BurntSushi/toml"
 	"github.com/go-yaml/yaml"
 	"github.com/heetch/confita/backend"
 	"github.com/pkg/errors"
@@ -51,6 +53,10 @@ func (b *Backend) loadFile() error {
 		var y yamlConfig
 		err = yaml.NewDecoder(f).Decode(&y)
 		b.unmarshaler = &y
+	case ".toml":
+		var t tomlConfig
+		_, err = toml.DecodeReader(f, &t)
+		b.unmarshaler = &t
 	default:
 		err = errors.Errorf("unsupported extension \"%s\"", ext)
 	}
@@ -116,4 +122,21 @@ type yamlRawMessage struct {
 func (msg *yamlRawMessage) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	msg.unmarshal = unmarshal
 	return nil
+}
+
+type tomlConfig map[string]toml.Primitive
+
+func (t tomlConfig) UnmarshalValue(_ context.Context, key string, to interface{}) error {
+	fmt.Println("toml.UnmarshalValue")
+	fmt.Println("t ==>", t)
+	fmt.Println("key ==>", key)
+	v, ok := t[key]
+	fmt.Println("v ==>", v)
+	fmt.Println("ok ==>", ok)
+	if !ok {
+		fmt.Println("wesh")
+		return backend.ErrNotFound
+	}
+	fmt.Printf("---\n---\n---\n")
+	return toml.PrimitiveDecode(v, to)
 }

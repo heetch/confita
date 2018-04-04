@@ -79,6 +79,17 @@ func TestFileBackend(t *testing.T) {
 		testLoad(t, path)
 	})
 
+	t.Run("TOML", func(t *testing.T) {
+		path, cleanup := createTempFile(t, "config.toml", `
+			name = "some name"
+			age = 10
+			timeout = 10
+		`)
+		defer cleanup()
+
+		testLoad(t, path)
+	})
+
 	t.Run("Unsupported extension", func(t *testing.T) {
 		path, cleanup := createTempFile(t, "config.xml", `{
 			"name": "some name"
@@ -112,7 +123,7 @@ func TestFileBackend(t *testing.T) {
 		require.Equal(t, backend.ErrNotFound, err)
 	})
 
-	t.Run("YAMl Key not found", func(t *testing.T) {
+	t.Run("YAML Key not found", func(t *testing.T) {
 		path, cleanup := createTempFile(t, "config.yml", `
   age: 10
   timeout: 10ns
@@ -124,5 +135,53 @@ func TestFileBackend(t *testing.T) {
 		var name string
 		err := b.UnmarshalValue(context.Background(), "name", &name)
 		require.Equal(t, backend.ErrNotFound, err)
+	})
+
+	t.Run("TOML Key not found", func(t *testing.T) {
+		path, cleanup := createTempFile(t, "config.toml", `
+			age = 10
+			timeout = 10
+		`)
+		defer cleanup()
+
+		b := file.NewBackend(path)
+
+		var name string
+		err := b.UnmarshalValue(context.Background(), "name", &name)
+		require.Equal(t, backend.ErrNotFound, err)
+	})
+
+	t.Run("TOML Special value", func(t *testing.T) {
+		path, cleanup := createTempFile(t, "config.toml", `
+			# Some comments.
+			[alpha]
+			ip = "10.0.0.1"
+
+				[alpha.config]
+				Ports = [ 8001, 8002 ]
+				Location = "Toronto"
+				Created = 1987-07-05T05:45:00Z
+
+			[beta]
+			ip = "10.0.0.2"
+
+				[beta.config]
+				Ports = [ 9001, 9002 ]
+				Location = "New Jersey"
+				Created = 1887-01-05T05:55:00Z
+		`)
+		defer cleanup()
+
+		b := file.NewBackend(path)
+
+		var alpha map[string]interface{}
+		err := b.UnmarshalValue(context.Background(), "alpha", &alpha)
+		require.NoError(t, err)
+
+		fmt.Println(alpha)
+		err = b.UnmarshalValue(context.Background(), "beta", &alpha)
+		require.NoError(t, err)
+		fmt.Println(alpha)
+		// fmt.Println(alpha["config"]["Ports"])
 	})
 }

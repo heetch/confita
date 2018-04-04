@@ -2,6 +2,12 @@
 
 
 [[projects]]
+  name = "github.com/BurntSushi/toml"
+  packages = ["."]
+  revision = "b26d9c308763d68093482582cea63d69be07a0f0"
+  version = "v0.3.0"
+
+[[projects]]
   name = "github.com/coreos/etcd"
   packages = [
     "auth/authpb",
@@ -244,6 +250,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d7e2815c5a5540ba66d586045277848589a2145bb8ada25465a1d217d2f43a85"
+  inputs-digest = "7799eaa1ed1fc91ff4dd9984d7f3823eab451887a08acb91df63b4616bb2c380"
   solver-name = "gps-cdcl"
   solver-version = 1
