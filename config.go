@@ -16,6 +16,11 @@ import (
 // Loader loads configuration keys from backends and stores them is a struct.
 type Loader struct {
 	backends []backend.Backend
+
+	// Tag specifies the tag name used to parse
+	// configuration keys and options.
+	// If empty, "config" is used.
+	Tag string
 }
 
 // NewLoader creates a Loader. If no backend is specified, the loader uses the environment.
@@ -64,7 +69,12 @@ func (l *Loader) parseStruct(ctx context.Context, ref *reflect.Value) error {
 			continue
 		}
 
-		tag := field.Tag.Get("config")
+		tagKey := l.Tag
+		if tagKey == "" {
+			tagKey = "config"
+		}
+
+		tag := field.Tag.Get(tagKey)
 		if tag == "-" {
 			continue
 		}

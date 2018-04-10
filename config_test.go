@@ -363,3 +363,26 @@ func TestTags(t *testing.T) {
 		assert.Equal(t, "", cfg.Key)
 	})
 }
+
+func TestCustomTag(t *testing.T) {
+	s := struct {
+		Name string `custom:"name"`
+		Age  int    `custom:"age"`
+	}{}
+
+	st := store{
+		"name": "name",
+		"age":  "10",
+	}
+
+	err := confita.NewLoader(st).Load(context.Background(), &s)
+	require.NoError(t, err)
+	require.Empty(t, &s)
+
+	l := confita.NewLoader(st)
+	l.Tag = "custom"
+	err = l.Load(context.Background(), &s)
+	require.NoError(t, err)
+	require.Equal(t, "name", s.Name)
+	require.Equal(t, 10, s.Age)
+}
