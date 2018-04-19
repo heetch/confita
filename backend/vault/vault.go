@@ -12,28 +12,34 @@ import (
 type Backend struct {
 	client *api.Logical
 	path   string
+	secret *api.Secret
 }
 
 // NewBackend creates a configuration loader that loads from Vault
-func NewBackend(c *api.Logical, p string) *Backend {
+// all the keys from the given path and holds them in memory.
+func NewBackend(client *api.Logical, path string) *Backend {
 	return &Backend{
-		client: c,
-		path:   p,
+		client: client,
+		path:   path,
 	}
 }
 
-// Get loads the given key from Vault
+// Get loads the given key from Vault.
 func (b *Backend) Get(ctx context.Context, key string) ([]byte, error) {
-	secret, err := b.client.Read(b.path)
-	if err != nil {
-		return nil, err
+	var err error
+
+	if b.secret == nil {
+		b.secret, err = b.client.Read(b.path)
+		if err != nil {
+			return nil, err
+		}
+
+		if b.secret == nil {
+			return nil, fmt.Errorf("secret not found at the following path: %s", b.path)
+		}
 	}
 
-	if secret == nil {
-		return nil, fmt.Errorf("secret not found at the following path: %s", b.path)
-	}
-
-	if v, ok := secret.Data[key]; ok {
+	if v, ok := b.secret.Data[key]; ok {
 		return []byte(v.(string)), nil
 	}
 

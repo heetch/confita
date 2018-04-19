@@ -36,6 +36,14 @@ func NewLoader(backends ...backend.Backend) *Loader {
 	return &l
 }
 
+type fieldConfig struct {
+	Name     string
+	Key      string
+	Value    *reflect.Value
+	Required bool
+	Backend  string
+}
+
 // Load analyses all the fields of the given struct for a "config" tag and queries each backend
 // in order for the corresponding key. The given context can be used for timeout and cancelation.
 func (l *Loader) Load(ctx context.Context, to interface{}) error {
@@ -52,10 +60,15 @@ func (l *Loader) Load(ctx context.Context, to interface{}) error {
 	}
 
 	ref = ref.Elem()
-	return l.parseStruct(ctx, &ref)
+
+	fields := l.parseStruct(&ref)
+
+	return l.resolve(ctx, fields)
 }
 
-func (l *Loader) parseStruct(ctx context.Context, ref *reflect.Value) error {
+func (l *Loader) parseStruct(ref *reflect.Value) []*fieldConfig {
+	var list []*fieldConfig
+
 	t := ref.Type()
 
 	numFields := ref.NumField()
@@ -82,50 +95,53 @@ func (l *Loader) parseStruct(ctx context.Context, ref *reflect.Value) error {
 		// if struct or *struct, parse recursively
 		switch {
 		case typ.Kind() == reflect.Struct:
-			err := l.parseStruct(ctx, &value)
-			if err != nil {
-				return err
-			}
-
+			list = append(list, l.parseStruct(&value)...)
 			continue
 		case typ.Kind() == reflect.Ptr:
 			if value.Type().Elem().Kind() == reflect.Struct && !value.IsNil() {
 				value = value.Elem()
-
-				err := l.parseStruct(ctx, &value)
-				if err != nil {
-					return err
-				}
-
+				list = append(list, l.parseStruct(&value)...)
 				continue
 			}
 		}
 
+		// empty tag or no tag, skip the field
 		if tag == "" {
 			continue
 		}
 
-		key := tag
-		var required bool
-		var bcknd string
+		f := fieldConfig{
+			Name:  field.Name,
+			Key:   tag,
+			Value: &value,
+		}
 
 		if idx := strings.Index(tag, ","); idx != -1 {
-			key = tag[:idx]
+			f.Key = tag[:idx]
 			opts := strings.Split(tag[idx+1:], ",")
 
-			for _, o := range opts {
-				if o == "required" {
-					required = true
+			for _, opt := range opts {
+				if opt == "required" {
+					f.Required = true
 				}
 
-				if strings.HasPrefix(o, "backend=") {
-					bcknd = o[len("backend="):]
+				if strings.HasPrefix(opt, "backend=") {
+					f.Backend = opt[len("backend="):]
 				}
 			}
 		}
 
+		list = append(list, &f)
+	}
+
+	return list
+}
+
+func (l *Loader) resolve(ctx context.Context, fields []*fieldConfig) error {
+	for _, f := range fields {
 		var found bool
 		var backendFound bool
+
 		for _, b := range l.backends {
 			select {
 			case <-ctx.Done():
@@ -133,13 +149,14 @@ func (l *Loader) parseStruct(ctx context.Context, ref *reflect.Value) error {
 			default:
 			}
 
-			if bcknd != "" && bcknd != b.Name() {
+			if f.Backend != "" && f.Backend != b.Name() {
 				continue
 			}
+
 			backendFound = true
 
 			if u, ok := b.(backend.ValueUnmarshaler); ok {
-				err := u.UnmarshalValue(ctx, key, value.Addr().Interface())
+				err := u.UnmarshalValue(ctx, f.Key, f.Value.Addr().Interface())
 				if err != nil && err != backend.ErrNotFound {
 					return err
 				}
@@ -147,7 +164,7 @@ func (l *Loader) parseStruct(ctx context.Context, ref *reflect.Value) error {
 				continue
 			}
 
-			raw, err := b.Get(ctx, key)
+			raw, err := b.Get(ctx, f.Key)
 			if err != nil {
 				if err == backend.ErrNotFound {
 					continue
@@ -156,7 +173,7 @@ func (l *Loader) parseStruct(ctx context.Context, ref *reflect.Value) error {
 				return err
 			}
 
-			err = convert(string(raw), &value)
+			err = convert(string(raw), f.Value)
 			if err != nil {
 				return err
 			}
@@ -165,12 +182,12 @@ func (l *Loader) parseStruct(ctx context.Context, ref *reflect.Value) error {
 			break
 		}
 
-		if bcknd != "" && !backendFound {
-			return fmt.Errorf("the backend: '%s' is not supported", bcknd)
+		if f.Backend != "" && !backendFound {
+			return fmt.Errorf("the backend: '%s' is not supported", f.Backend)
 		}
 
-		if required && !found {
-			return fmt.Errorf("required key '%s' for field '%s' not found", key, field.Name)
+		if f.Required && !found {
+			return fmt.Errorf("required key '%s' for field '%s' not found", f.Key, f.Name)
 		}
 	}
 
