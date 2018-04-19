@@ -87,8 +87,9 @@ loader := confita.NewLoader(
   env.NewBackend(),
   file.NewBackend("/path/to/config.json"),
   file.NewBackend("/path/to/config.yaml"),
-  etcd.NewBackend(etcdClientv3, "namespace"),
-  consul.NewBackend(consulClient, "namespace"),
+  etcd.NewBackend(etcdClientv3),
+  consul.NewBackend(consulClient),
+  vault.NewBackend(vaultClient),
 )
 ```
 
