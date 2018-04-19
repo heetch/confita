@@ -21,6 +21,12 @@
   version = "v1.1.0"
 
 [[projects]]
+  name = "github.com/fatih/structs"
+  packages = ["."]
+  revision = "a720dfa8df582c51dee1b36feabb906bde1588bd"
+  version = "v1.0"
+
+[[projects]]
   name = "github.com/go-yaml/yaml"
   packages = ["."]
   revision = "5420a8b6744d3b0345ab293f6fcba19c978f1183"
@@ -115,8 +121,8 @@
     "helper/parseutil",
     "helper/strutil"
   ]
-  revision = "5dd7f25f5c4b541f2da62d70075b6f82771a650d"
-  version = "v0.10.0"
+  revision = "7e1fbde40afee241f81ef08700e7987d86fc7242"
+  version = "v0.9.6"
 
 [[projects]]
   branch = "master"
@@ -239,6 +245,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "13251d2c404176de8233a34608178a7b88980eefdc18f7b2872fab7b82de93de"
+  inputs-digest = "dd119391aa68184558f6ef082ab5f3155d9b87ec9e987c896a34bb9dcabe1bc0"
   solver-name = "gps-cdcl"
   solver-version = 1

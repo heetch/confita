@@ -21,6 +21,8 @@ func TestVaultBackend(t *testing.T) {
 
 	path := "secret/test"
 
+	defer c.Delete(path)
+
 	t.Run("SecretPathNotFound", func(t *testing.T) {
 		b := NewBackend(c, path)
 		_, err := b.Get(context.Background(), "foo")
