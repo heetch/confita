@@ -418,3 +418,64 @@ func TestCustomTag(t *testing.T) {
 	require.Equal(t, "name", s.Name)
 	require.Equal(t, 10, s.Age)
 }
+
+func TestSliceField(t *testing.T) {
+	t.Run("Empty slice", func(t *testing.T) {
+		s := struct {
+			Letters []string `config:"letters"`
+		}{}
+
+		st := store{
+			"letters": "a,b,c",
+		}
+		e := []string{
+			"a",
+			"b",
+			"c",
+		}
+		err := confita.NewLoader(st).Load(context.Background(), &s)
+		require.NoError(t, err)
+		require.EqualValues(t, e, s.Letters)
+	})
+
+	t.Run("Non-empty slice", func(t *testing.T) {
+
+		s := struct {
+			Letters []string `config:"letters"`
+		}{
+			Letters: []string{"a", "b"},
+		}
+
+		st := store{
+			"letters": "c,d,e",
+		}
+		e := []string{
+			"a",
+			"b",
+			"c",
+			"d",
+			"e",
+		}
+		err := confita.NewLoader(st).Load(context.Background(), &s)
+		require.NoError(t, err)
+		require.EqualValues(t, e, s.Letters)
+	})
+
+	t.Run("Int slice", func(t *testing.T) {
+		s := struct {
+			Numbers []int `config:"numbers"`
+		}{}
+
+		st := store{
+			"numbers": "21,21,42",
+		}
+		e := []int{
+			21,
+			21,
+			42,
+		}
+		err := confita.NewLoader(st).Load(context.Background(), &s)
+		require.NoError(t, err)
+		require.EqualValues(t, e, s.Numbers)
+	})
+}

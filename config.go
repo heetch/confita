@@ -267,6 +267,16 @@ func convert(data string, value *reflect.Value) error {
 		}
 
 		value.SetFloat(f)
+	case k == reflect.Slice:
+		var err error
+		ss := strings.Split(data, ",")
+		for _, s := range ss {
+			v := reflect.Indirect(reflect.New(t.Elem()))
+			err = convert(s, &v)
+			value.Set(reflect.Append(*value, v))
+		}
+		return err
+
 	case k == reflect.String:
 		value.SetString(data)
 	case k == reflect.Ptr:
