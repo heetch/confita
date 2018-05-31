@@ -1,7 +1,4 @@
-[](https://user-images.githubusercontent.com/4570448/40786144-a8e8ce34-64ea-11e8-90b9-cb838cd13b88.png)
-
-<img height="220" src="https://user-images.githubusercontent.com/4570448/40786144-a8e8ce34-64ea-11e8-90b9-cb838cd13b88.png">
-
+![](https://user-images.githubusercontent.com/4570448/40795774-57ad2ae2-6503-11e8-8448-328094f4091f.png)
 
 [![Build Status](https://travis-ci.org/heetch/confita.svg?branch=master)](https://travis-ci.org/heetch/confita)
 [![GoDoc](https://godoc.org/github.com/heetch/confita?status.svg)](https://godoc.org/github.com/heetch/confita)
