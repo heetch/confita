@@ -8,10 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/heetch/confita"
 	"github.com/heetch/confita/backend"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -45,23 +44,18 @@ func (longRunningStore) Name() string {
 	return "longRunningStore"
 }
 
-type valueUnmarshaler store
+type unmarshaler []byte
 
-func (k valueUnmarshaler) Get(ctx context.Context, key string) ([]byte, error) {
-	return store(k).Get(ctx, key)
+func (u unmarshaler) Get(ctx context.Context, key string) ([]byte, error) {
+	return nil, nil
 }
 
-func (k valueUnmarshaler) UnmarshalValue(ctx context.Context, key string, to interface{}) error {
-	data, err := store(k).Get(ctx, key)
-	if err != nil {
-		return err
-	}
-
-	return json.Unmarshal(data, to)
+func (u unmarshaler) Unmarshal(ctx context.Context, to interface{}) error {
+	return json.Unmarshal([]byte(u), to)
 }
 
-func (valueUnmarshaler) Name() string {
-	return "valueUnmarshaler"
+func (unmarshaler) Name() string {
+	return "unmarshaler"
 }
 
 func TestLoad(t *testing.T) {
@@ -222,17 +216,17 @@ func TestLoadContextTimeout(t *testing.T) {
 	require.Equal(t, context.DeadlineExceeded, err)
 }
 
-func TestLoadFromValueUnmarshaler(t *testing.T) {
+func TestLoadFromUnmarshaler(t *testing.T) {
 	s := struct {
 		Name    string `config:"name"`
 		Age     int    `config:"age"`
 		Ignored string `config:"-"`
 	}{}
 
-	st := valueUnmarshaler{
-		"name": `"name"`,
-		"age":  "10",
-	}
+	st := unmarshaler(`{
+		"name": "name",
+		"age":  10
+	}`)
 
 	err := confita.NewLoader(st).Load(context.Background(), &s)
 	require.NoError(t, err)
