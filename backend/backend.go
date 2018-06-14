@@ -33,7 +33,3 @@ func (b *backendFunc) Get(ctx context.Context, key string) ([]byte, error) {
 func (b *backendFunc) Name() string {
 	return b.name
 }
-
-type Unmarshaler interface {
-	Unmarshal(ctx context.Context, to interface{}) error
-}

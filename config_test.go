@@ -235,6 +235,25 @@ func TestLoadFromUnmarshaler(t *testing.T) {
 	require.Zero(t, s.Ignored)
 }
 
+func TestLoadFromStructLoader(t *testing.T) {
+	s := struct {
+		Name    string `config:"name"`
+		Age     int    `config:"age"`
+		Ignored string `config:"-"`
+	}{}
+
+	sl := structLoader{store{
+		"name": "name",
+		"age":  "10",
+	}}
+
+	err := confita.NewLoader(&sl).Load(context.Background(), &s)
+	require.NoError(t, err)
+	require.Equal(t, "name", s.Name)
+	require.Equal(t, 10, s.Age)
+	require.Zero(t, s.Ignored)
+}
+
 type backendMock struct {
 	store  map[string]string
 	called int
@@ -253,6 +272,26 @@ func (b *backendMock) Get(ctx context.Context, key string) ([]byte, error) {
 
 func (b *backendMock) Name() string {
 	return b.name
+}
+
+type structLoader struct {
+	store
+}
+
+func (s *structLoader) LoadStruct(ctx context.Context, cfg *confita.StructConfig) error {
+	for _, f := range cfg.Fields {
+		v, err := s.Get(ctx, f.Key)
+		if err != nil {
+			return err
+		}
+
+		err = f.Set(string(v))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func TestBackendTag(t *testing.T) {
@@ -307,7 +346,6 @@ func TestBackendTag(t *testing.T) {
 }
 
 func TestTags(t *testing.T) {
-
 	t.Run("BadRequired", func(t *testing.T) {
 		type test struct {
 			Key string `config:"key,rrequiredd,backend=store"`

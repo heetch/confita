@@ -36,20 +36,7 @@ func NewLoader(backends ...backend.Backend) *Loader {
 	return &l
 }
 
-type structConfig struct {
-	s      interface{}
-	fields []*fieldConfig
-}
-
-type fieldConfig struct {
-	Name     string
-	Key      string
-	Value    *reflect.Value
-	Required bool
-	Backend  string
-}
-
-// Load analyses all the fields of the given struct for a "config" tag and queries each backend
+// Load analyses all the Fields of the given struct for a "config" tag and queries each backend
 // in order for the corresponding key. The given context can be used for timeout and cancelation.
 func (l *Loader) Load(ctx context.Context, to interface{}) error {
 	select {
@@ -67,12 +54,12 @@ func (l *Loader) Load(ctx context.Context, to interface{}) error {
 	ref = ref.Elem()
 
 	s := l.parseStruct(&ref)
-	s.s = to
+	s.S = to
 	return l.resolve(ctx, s)
 }
 
-func (l *Loader) parseStruct(ref *reflect.Value) *structConfig {
-	var s structConfig
+func (l *Loader) parseStruct(ref *reflect.Value) *StructConfig {
+	var s StructConfig
 
 	t := ref.Type()
 
@@ -100,12 +87,12 @@ func (l *Loader) parseStruct(ref *reflect.Value) *structConfig {
 		// if struct or *struct, parse recursively
 		switch {
 		case typ.Kind() == reflect.Struct:
-			s.fields = append(s.fields, l.parseStruct(&value).fields...)
+			s.Fields = append(s.Fields, l.parseStruct(&value).Fields...)
 			continue
 		case typ.Kind() == reflect.Ptr:
 			if value.Type().Elem().Kind() == reflect.Struct && !value.IsNil() {
 				value = value.Elem()
-				s.fields = append(s.fields, l.parseStruct(&value).fields...)
+				s.Fields = append(s.Fields, l.parseStruct(&value).Fields...)
 				continue
 			}
 		}
@@ -115,7 +102,7 @@ func (l *Loader) parseStruct(ref *reflect.Value) *structConfig {
 			continue
 		}
 
-		f := fieldConfig{
+		f := FieldConfig{
 			Name:  field.Name,
 			Key:   tag,
 			Value: &value,
@@ -136,14 +123,14 @@ func (l *Loader) parseStruct(ref *reflect.Value) *structConfig {
 			}
 		}
 
-		s.fields = append(s.fields, &f)
+		s.Fields = append(s.Fields, &f)
 	}
 
 	return &s
 }
 
-func (l *Loader) resolve(ctx context.Context, s *structConfig) error {
-	for _, f := range s.fields {
+func (l *Loader) resolve(ctx context.Context, s *StructConfig) error {
+	for _, f := range s.Fields {
 		if f.Backend != "" {
 			var found bool
 			for _, b := range l.backends {
@@ -166,8 +153,8 @@ func (l *Loader) resolve(ctx context.Context, s *structConfig) error {
 		default:
 		}
 
-		if u, ok := b.(backend.Unmarshaler); ok {
-			err := u.Unmarshal(ctx, s.s)
+		if u, ok := b.(Unmarshaler); ok {
+			err := u.Unmarshal(ctx, s.S)
 			if err != nil {
 				return err
 			}
@@ -175,7 +162,16 @@ func (l *Loader) resolve(ctx context.Context, s *structConfig) error {
 			continue
 		}
 
-		for _, f := range s.fields {
+		if u, ok := b.(StructLoader); ok {
+			err := u.LoadStruct(ctx, s)
+			if err != nil {
+				return err
+			}
+
+			continue
+		}
+
+		for _, f := range s.Fields {
 			if f.Backend != "" && f.Backend != b.Name() {
 				continue
 			}
@@ -196,13 +192,33 @@ func (l *Loader) resolve(ctx context.Context, s *structConfig) error {
 		}
 	}
 
-	for _, f := range s.fields {
+	for _, f := range s.Fields {
 		if f.Required && isZero(f.Value) {
 			return fmt.Errorf("required key '%s' for field '%s' not found", f.Key, f.Name)
 		}
 	}
 
 	return nil
+}
+
+// StructConfig holds informations about each field of a struct S.
+type StructConfig struct {
+	S      interface{}
+	Fields []*FieldConfig
+}
+
+// FieldConfig holds informations about a struct field.
+type FieldConfig struct {
+	Name     string
+	Key      string
+	Value    *reflect.Value
+	Required bool
+	Backend  string
+}
+
+// Set converts data into f.Value.
+func (f *FieldConfig) Set(data string) error {
+	return convert(data, f.Value)
 }
 
 func convert(data string, value *reflect.Value) error {
@@ -263,4 +279,14 @@ func isZero(v *reflect.Value) bool {
 	zero := reflect.Zero(v.Type()).Interface()
 	current := v.Interface()
 	return reflect.DeepEqual(current, zero)
+}
+
+// Unmarshaler can be implemented by backends to receive the struct directly and load values into it.
+type Unmarshaler interface {
+	Unmarshal(ctx context.Context, to interface{}) error
+}
+
+// StructLoader can be implemented by backends to receive the parsed struct informations and load values into it.
+type StructLoader interface {
+	LoadStruct(ctx context.Context, cfg *StructConfig) error
 }
