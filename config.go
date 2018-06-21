@@ -108,6 +108,11 @@ func (l *Loader) parseStruct(ref *reflect.Value) *StructConfig {
 			Value: &value,
 		}
 
+		// copying field content to a new value
+		clone := reflect.Indirect(reflect.New(f.Value.Type()))
+		clone.Set(*f.Value)
+		f.Default = &clone
+
 		if idx := strings.Index(tag, ","); idx != -1 {
 			f.Key = tag[:idx]
 			opts := strings.Split(tag[idx+1:], ",")
@@ -212,6 +217,7 @@ type FieldConfig struct {
 	Name     string
 	Key      string
 	Value    *reflect.Value
+	Default  *reflect.Value
 	Required bool
 	Backend  string
 }

@@ -27,29 +27,49 @@ func (b *Backend) LoadStruct(ctx context.Context, cfg *confita.StructConfig) err
 			continue
 		}
 
+		// Display all the flags and their default values but override the field only if the user has explicitely
+		// set the flag.
 		k := f.Value.Kind()
 		switch {
 		case f.Value.Type().String() == "time.Duration":
-			flag.DurationVar(f.Value.Addr().Interface().(*time.Duration), f.Key, time.Duration(f.Value.Int()), "")
-		case k == reflect.Bool:
-			flag.BoolVar(f.Value.Addr().Interface().(*bool), f.Key, f.Value.Bool(), "")
-		case k >= reflect.Int && k <= reflect.Int64:
-			v := flag.Int(f.Key, int(f.Value.Int()), "")
+			// define the flag and its default value
+			v := flag.Duration(f.Key, time.Duration(f.Default.Int()), "")
+			// this function must be executed after the flag.Parse call.
 			defer func() {
-				f.Value.SetInt(int64(*v))
+				// if the user has set the flag, save the value in the field.
+				if isFlagSet(f.Key) {
+					f.Value.SetInt(int64(*v))
+				}
+			}()
+		case k == reflect.Bool:
+			v := flag.Bool(f.Key, f.Default.Bool(), "")
+			defer func() {
+				if isFlagSet(f.Key) {
+					f.Value.SetBool(*v)
+				}
+			}()
+		case k >= reflect.Int && k <= reflect.Int64:
+			v := flag.Int(f.Key, int(f.Default.Int()), "")
+			defer func() {
+				if isFlagSet(f.Key) {
+					f.Value.SetInt(int64(*v))
+				}
 			}()
 		case k >= reflect.Uint && k <= reflect.Uint64:
-			v := flag.Uint(f.Key, uint(f.Value.Uint()), "")
+			v := flag.Uint(f.Key, uint(f.Default.Uint()), "")
 			defer func() {
 				f.Value.SetUint(uint64(*v))
 			}()
 		case k >= reflect.Float32 && k <= reflect.Float64:
-			v := flag.Float64(f.Key, f.Value.Float(), "")
+			v := flag.Float64(f.Key, f.Default.Float(), "")
 			defer func() {
 				f.Value.SetFloat(*v)
 			}()
 		case k == reflect.String:
-			flag.StringVar(f.Value.Addr().Interface().(*string), f.Key, f.Value.String(), "")
+			v := flag.String(f.Key, f.Default.String(), "")
+			defer func() {
+				f.Value.SetString(*v)
+			}()
 		default:
 			flag.Var(&flagValue{f}, f.Key, "")
 		}
@@ -72,12 +92,24 @@ func (f *flagValue) String() string {
 	return f.Key
 }
 
+func (f *flagValue) Get() interface{} {
+	return f.Default.Interface()
+}
+
 // Get is not implemented.
 func (b *Backend) Get(ctx context.Context, key string) ([]byte, error) {
 	return nil, errors.New("not implemented")
 }
 
-// Name returns the type of the file.
+// Name returns the name of the flags backend.
 func (b *Backend) Name() string {
 	return "flags"
+}
+
+func isFlagSet(name string) bool {
+	flagset := make(map[string]bool)
+	flag.Visit(func(f *flag.Flag) { flagset[f.Name] = true })
+
+	_, ok := flagset[name]
+	return ok
 }

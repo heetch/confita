@@ -147,16 +147,16 @@ type Config struct {
 
 ### Command line flags
 
-The `flags` backend allows to load individual configuration keys from the environment. The default values are extracted from the struct fields values.
+The `flags` backend allows to load individual configuration keys from the command line. The default values are extracted from the struct fields values.
 
 ```sh
 ./bin -h
 
 Usage of ./bin:
   -host string
-       (default "http://some-host")
+       (default "127.0.0.1")
   -port int
-       (default "hello")
+       (default 5656)
   -timeout duration
        (default 10s)
 ```
