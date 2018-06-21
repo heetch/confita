@@ -420,7 +420,7 @@ func TestCustomTag(t *testing.T) {
 }
 
 func TestSliceField(t *testing.T) {
-	t.Run("Empty slice", func(t *testing.T) {
+	t.Run("Slice of string - empty", func(t *testing.T) {
 		s := struct {
 			Letters []string `config:"letters"`
 		}{}
@@ -438,7 +438,7 @@ func TestSliceField(t *testing.T) {
 		require.EqualValues(t, e, s.Letters)
 	})
 
-	t.Run("Non-empty slice", func(t *testing.T) {
+	t.Run("Slice of string - non-empty - no appending", func(t *testing.T) {
 
 		s := struct {
 			Letters []string `config:"letters"`
@@ -450,8 +450,6 @@ func TestSliceField(t *testing.T) {
 			"letters": "c,d,e",
 		}
 		e := []string{
-			"a",
-			"b",
 			"c",
 			"d",
 			"e",
@@ -461,7 +459,7 @@ func TestSliceField(t *testing.T) {
 		require.EqualValues(t, e, s.Letters)
 	})
 
-	t.Run("Int slice", func(t *testing.T) {
+	t.Run("Slice of int", func(t *testing.T) {
 		s := struct {
 			Numbers []int `config:"numbers"`
 		}{}

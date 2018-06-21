@@ -269,12 +269,19 @@ func convert(data string, value *reflect.Value) error {
 		value.SetFloat(f)
 	case k == reflect.Slice:
 		var err error
+		// create a new temporary slice to override the actual Value if it's not empty
+		nv := reflect.MakeSlice(value.Type(), 0, 0)
 		ss := strings.Split(data, ",")
 		for _, s := range ss {
+			// retrieve a new Value v based on the type of the slice
 			v := reflect.Indirect(reflect.New(t.Elem()))
+			// call convert to set the current value of the slice to v
 			err = convert(s, &v)
-			value.Set(reflect.Append(*value, v))
+			// append v to the temporary slice
+			nv = reflect.Append(nv, v)
 		}
+		// Set the newly created temporary slice to the target Value
+		value.Set(nv)
 		return err
 
 	case k == reflect.String:
