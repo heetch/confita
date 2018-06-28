@@ -60,6 +60,14 @@ type Config struct {
   }
 ```
 
+If a field is a slice, Confita will automatically split the config value by commas and fill the slice with each sub value.
+
+```go
+type Config struct {
+  Endpoints []string `config:"endpoints"`
+}
+```
+
 As a special case, if the field tag is "-", the field is always omitted. This is useful if you want to populate this field on your own.
 
 ```go
