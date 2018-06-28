@@ -6,11 +6,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
 	"time"
 
-	"github.com/heetch/confita/backend"
 	"github.com/heetch/confita/backend/file"
 	"github.com/stretchr/testify/require"
 )
@@ -30,31 +28,26 @@ func createTempFile(t *testing.T, name, content string) (string, func()) {
 	require.NoError(t, f.Close())
 
 	return path, func() {
-		require.NoError(t, os.RemoveAll(path))
+		require.NoError(t, os.RemoveAll(dir))
 	}
 }
 
 func TestFileBackend(t *testing.T) {
-	testLoad := func(t *testing.T, path string) {
-		tests := []struct {
-			key      string
-			expected interface{}
-			target   interface{}
-		}{
-			{"name", "some name", new(string)},
-			{"age", 10, new(int)},
-			{"timeout", 10 * time.Nanosecond, new(time.Duration)},
-		}
+	type config struct {
+		Name    string
+		Age     int
+		Timeout time.Duration
+	}
 
+	testLoad := func(t *testing.T, path string) {
+		var c config
 		b := file.NewBackend(path)
 
-		for _, test := range tests {
-			err := b.UnmarshalValue(context.Background(), test.key, test.target)
-			require.NoError(t, err)
-			// dirty trick to fetch the actual value instead of its pointer
-			actual := reflect.Indirect(reflect.ValueOf(test.target)).Interface()
-			require.Equal(t, test.expected, actual)
-		}
+		err := b.Unmarshal(context.Background(), &c)
+		require.NoError(t, err)
+		require.Equal(t, "some name", c.Name)
+		require.Equal(t, 10, c.Age)
+		require.Equal(t, 10*time.Nanosecond, c.Timeout)
 	}
 
 	t.Run("JSON", func(t *testing.T) {
@@ -85,44 +78,18 @@ func TestFileBackend(t *testing.T) {
 		}`)
 		defer cleanup()
 
+		var c config
 		b := file.NewBackend(path)
-		var name string
-		err := b.UnmarshalValue(context.Background(), "name", &name)
+
+		err := b.Unmarshal(context.Background(), &c)
 		require.Error(t, err)
 	})
 
 	t.Run("File not found", func(t *testing.T) {
+		var c config
 		b := file.NewBackend("some path")
-		var name string
-		err := b.UnmarshalValue(context.Background(), "name", &name)
+
+		err := b.Unmarshal(context.Background(), &c)
 		require.Error(t, err)
-	})
-
-	t.Run("JSON Key not found", func(t *testing.T) {
-		path, cleanup := createTempFile(t, "config.json", `{
-			"age": 10,
-			"timeout": 10
-		}`)
-		defer cleanup()
-
-		b := file.NewBackend(path)
-
-		var name string
-		err := b.UnmarshalValue(context.Background(), "name", &name)
-		require.Equal(t, backend.ErrNotFound, err)
-	})
-
-	t.Run("YAMl Key not found", func(t *testing.T) {
-		path, cleanup := createTempFile(t, "config.yml", `
-  age: 10
-  timeout: 10ns
-`)
-		defer cleanup()
-
-		b := file.NewBackend(path)
-
-		var name string
-		err := b.UnmarshalValue(context.Background(), "name", &name)
-		require.Equal(t, backend.ErrNotFound, err)
 	})
 }

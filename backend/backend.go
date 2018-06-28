@@ -33,8 +33,3 @@ func (b *backendFunc) Get(ctx context.Context, key string) ([]byte, error) {
 func (b *backendFunc) Name() string {
 	return b.name
 }
-
-// A ValueUnmarshaler decodes a value identified by a key into a target.
-type ValueUnmarshaler interface {
-	UnmarshalValue(ctx context.Context, key string, to interface{}) error
-}

@@ -7,20 +7,18 @@ import (
 	"path/filepath"
 
 	"github.com/go-yaml/yaml"
-	"github.com/heetch/confita/backend"
 	"github.com/pkg/errors"
 )
 
 // Backend that loads a configuration from a file.
 // It supports json and yaml formats.
 type Backend struct {
-	path        string
-	unmarshaler backend.ValueUnmarshaler
-	name        string
+	path string
+	name string
 }
 
 // NewBackend creates a configuration loader that loads from a file.
-// The content will get decoded based on the file extension and cached in the backend.
+// The content will get decoded based on the file extension.
 func NewBackend(path string) *Backend {
 	name := filepath.Ext(path)
 	if name != "" {
@@ -33,7 +31,9 @@ func NewBackend(path string) *Backend {
 	}
 }
 
-func (b *Backend) loadFile() error {
+// Unmarshal takes a struct pointer and unmarshals the file into it,
+// using either json or yaml based on the file extention.
+func (b *Backend) Unmarshal(ctx context.Context, to interface{}) error {
 	f, err := os.Open(b.path)
 	if err != nil {
 		return errors.Wrapf(err, "failed to open file at path \"%s\"", b.path)
@@ -42,38 +42,16 @@ func (b *Backend) loadFile() error {
 
 	switch ext := filepath.Ext(b.path); ext {
 	case ".json":
-		var j jsonConfig
-		err = json.NewDecoder(f).Decode(&j)
-		b.unmarshaler = &j
+		err = json.NewDecoder(f).Decode(to)
 	case ".yml":
 		fallthrough
 	case ".yaml":
-		var y yamlConfig
-		err = yaml.NewDecoder(f).Decode(&y)
-		b.unmarshaler = &y
+		err = yaml.NewDecoder(f).Decode(to)
 	default:
 		err = errors.Errorf("unsupported extension \"%s\"", ext)
 	}
 
 	return errors.Wrapf(err, "failed to decode file \"%s\"", b.path)
-}
-
-// UnmarshalValue unmarshals the given key directly to the given target.
-// It returns an error if the underlying file cannot be loaded.
-func (b *Backend) UnmarshalValue(ctx context.Context, key string, to interface{}) error {
-	if b.unmarshaler == nil {
-		err := b.loadFile()
-		if err != nil {
-			return err
-		}
-	}
-
-	err := b.unmarshaler.UnmarshalValue(ctx, key, to)
-	if err == backend.ErrNotFound {
-		return err
-	}
-
-	return errors.Wrapf(err, "failed to unmarshal key \"%s\"")
 }
 
 // Get is not implemented.
@@ -84,36 +62,4 @@ func (b *Backend) Get(ctx context.Context, key string) ([]byte, error) {
 // Name returns the type of the file.
 func (b *Backend) Name() string {
 	return b.name
-}
-
-type jsonConfig map[string]json.RawMessage
-
-func (j jsonConfig) UnmarshalValue(_ context.Context, key string, to interface{}) error {
-	v, ok := j[key]
-	if !ok {
-		return backend.ErrNotFound
-	}
-
-	return json.Unmarshal(v, to)
-}
-
-type yamlConfig map[string]yamlRawMessage
-
-func (y yamlConfig) UnmarshalValue(_ context.Context, key string, to interface{}) error {
-	v, ok := y[key]
-	if !ok {
-		return backend.ErrNotFound
-	}
-
-	return v.unmarshal(to)
-}
-
-// used to postpone yaml unmarshaling
-type yamlRawMessage struct {
-	unmarshal func(interface{}) error
-}
-
-func (msg *yamlRawMessage) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	msg.unmarshal = unmarshal
-	return nil
 }

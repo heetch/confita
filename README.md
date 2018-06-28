@@ -11,6 +11,7 @@ Confita is a library that loads configuration from multiple backends and stores 
 - Environment variables
 - JSON files
 - Yaml files
+- Command line flags
 - [etcd](https://github.com/coreos/etcd)
 - [Consul](https://www.consul.io/)
 - [Vault](https://www.vaultproject.io/)
@@ -87,6 +88,7 @@ loader := confita.NewLoader(
   env.NewBackend(),
   file.NewBackend("/path/to/config.json"),
   file.NewBackend("/path/to/config.yaml"),
+  flags.NewBackend(),
   etcd.NewBackend(etcdClientv3),
   consul.NewBackend(consulClient),
   vault.NewBackend(vaultClient),
@@ -141,6 +143,22 @@ type Config struct {
   Port        uint32        `config:"port,required,backend=etcd"`
   Timeout     time.Duration `config:"timeout"`
 }
+```
+
+### Command line flags
+
+The `flags` backend allows to load individual configuration keys from the command line. The default values are extracted from the struct fields values.
+
+```sh
+./bin -h
+
+Usage of ./bin:
+  -host string
+       (default "127.0.0.1")
+  -port int
+       (default 5656)
+  -timeout duration
+       (default 10s)
 ```
 
 ## License

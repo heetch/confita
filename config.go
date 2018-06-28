@@ -36,15 +36,7 @@ func NewLoader(backends ...backend.Backend) *Loader {
 	return &l
 }
 
-type fieldConfig struct {
-	Name     string
-	Key      string
-	Value    *reflect.Value
-	Required bool
-	Backend  string
-}
-
-// Load analyses all the fields of the given struct for a "config" tag and queries each backend
+// Load analyses all the Fields of the given struct for a "config" tag and queries each backend
 // in order for the corresponding key. The given context can be used for timeout and cancelation.
 func (l *Loader) Load(ctx context.Context, to interface{}) error {
 	select {
@@ -61,13 +53,13 @@ func (l *Loader) Load(ctx context.Context, to interface{}) error {
 
 	ref = ref.Elem()
 
-	fields := l.parseStruct(&ref)
-
-	return l.resolve(ctx, fields)
+	s := l.parseStruct(&ref)
+	s.S = to
+	return l.resolve(ctx, s)
 }
 
-func (l *Loader) parseStruct(ref *reflect.Value) []*fieldConfig {
-	var list []*fieldConfig
+func (l *Loader) parseStruct(ref *reflect.Value) *StructConfig {
+	var s StructConfig
 
 	t := ref.Type()
 
@@ -95,12 +87,12 @@ func (l *Loader) parseStruct(ref *reflect.Value) []*fieldConfig {
 		// if struct or *struct, parse recursively
 		switch {
 		case typ.Kind() == reflect.Struct:
-			list = append(list, l.parseStruct(&value)...)
+			s.Fields = append(s.Fields, l.parseStruct(&value).Fields...)
 			continue
 		case typ.Kind() == reflect.Ptr:
 			if value.Type().Elem().Kind() == reflect.Struct && !value.IsNil() {
 				value = value.Elem()
-				list = append(list, l.parseStruct(&value)...)
+				s.Fields = append(s.Fields, l.parseStruct(&value).Fields...)
 				continue
 			}
 		}
@@ -110,11 +102,16 @@ func (l *Loader) parseStruct(ref *reflect.Value) []*fieldConfig {
 			continue
 		}
 
-		f := fieldConfig{
+		f := FieldConfig{
 			Name:  field.Name,
 			Key:   tag,
 			Value: &value,
 		}
+
+		// copying field content to a new value
+		clone := reflect.Indirect(reflect.New(f.Value.Type()))
+		clone.Set(*f.Value)
+		f.Default = &clone
 
 		if idx := strings.Index(tag, ","); idx != -1 {
 			f.Key = tag[:idx]
@@ -131,36 +128,56 @@ func (l *Loader) parseStruct(ref *reflect.Value) []*fieldConfig {
 			}
 		}
 
-		list = append(list, &f)
+		s.Fields = append(s.Fields, &f)
 	}
 
-	return list
+	return &s
 }
 
-func (l *Loader) resolve(ctx context.Context, fields []*fieldConfig) error {
-	for _, f := range fields {
-		var found bool
-		var backendFound bool
-
-		for _, b := range l.backends {
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			default:
-			}
-
-			if f.Backend != "" && f.Backend != b.Name() {
-				continue
-			}
-
-			backendFound = true
-
-			if u, ok := b.(backend.ValueUnmarshaler); ok {
-				err := u.UnmarshalValue(ctx, f.Key, f.Value.Addr().Interface())
-				if err != nil && err != backend.ErrNotFound {
-					return err
+func (l *Loader) resolve(ctx context.Context, s *StructConfig) error {
+	for _, f := range s.Fields {
+		if f.Backend != "" {
+			var found bool
+			for _, b := range l.backends {
+				if b.Name() == f.Backend {
+					found = true
+					break
 				}
+			}
 
+			if !found {
+				return fmt.Errorf("the backend: '%s' is not supported", f.Backend)
+			}
+		}
+	}
+
+	for _, b := range l.backends {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
+		if u, ok := b.(Unmarshaler); ok {
+			err := u.Unmarshal(ctx, s.S)
+			if err != nil {
+				return err
+			}
+
+			continue
+		}
+
+		if u, ok := b.(StructLoader); ok {
+			err := u.LoadStruct(ctx, s)
+			if err != nil {
+				return err
+			}
+
+			continue
+		}
+
+		for _, f := range s.Fields {
+			if f.Backend != "" && f.Backend != b.Name() {
 				continue
 			}
 
@@ -177,21 +194,37 @@ func (l *Loader) resolve(ctx context.Context, fields []*fieldConfig) error {
 			if err != nil {
 				return err
 			}
-
-			found = true
-			break
 		}
+	}
 
-		if f.Backend != "" && !backendFound {
-			return fmt.Errorf("the backend: '%s' is not supported", f.Backend)
-		}
-
-		if f.Required && !found {
+	for _, f := range s.Fields {
+		if f.Required && isZero(f.Value) {
 			return fmt.Errorf("required key '%s' for field '%s' not found", f.Key, f.Name)
 		}
 	}
 
 	return nil
+}
+
+// StructConfig holds informations about each field of a struct S.
+type StructConfig struct {
+	S      interface{}
+	Fields []*FieldConfig
+}
+
+// FieldConfig holds informations about a struct field.
+type FieldConfig struct {
+	Name     string
+	Key      string
+	Value    *reflect.Value
+	Default  *reflect.Value
+	Required bool
+	Backend  string
+}
+
+// Set converts data into f.Value.
+func (f *FieldConfig) Set(data string) error {
+	return convert(data, f.Value)
 }
 
 func convert(data string, value *reflect.Value) error {
@@ -246,4 +279,20 @@ func convert(data string, value *reflect.Value) error {
 	}
 
 	return nil
+}
+
+func isZero(v *reflect.Value) bool {
+	zero := reflect.Zero(v.Type()).Interface()
+	current := v.Interface()
+	return reflect.DeepEqual(current, zero)
+}
+
+// Unmarshaler can be implemented by backends to receive the struct directly and load values into it.
+type Unmarshaler interface {
+	Unmarshal(ctx context.Context, to interface{}) error
+}
+
+// StructLoader can be implemented by backends to receive the parsed struct informations and load values into it.
+type StructLoader interface {
+	LoadStruct(ctx context.Context, cfg *StructConfig) error
 }
