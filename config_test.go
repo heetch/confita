@@ -476,4 +476,20 @@ func TestSliceField(t *testing.T) {
 		require.NoError(t, err)
 		require.EqualValues(t, e, s.Numbers)
 	})
+
+	t.Run("Slice of *int", func(t *testing.T) {
+		s := struct {
+			Numbers []*int `config:"numbers"`
+		}{}
+
+		st := store{
+			"numbers": "21,21,42",
+		}
+
+		err := confita.NewLoader(st).Load(context.Background(), &s)
+		require.NoError(t, err)
+		require.Equal(t, 21, *s.Numbers[0])
+		require.Equal(t, 21, *s.Numbers[1])
+		require.Equal(t, 42, *s.Numbers[2])
+	})
 }

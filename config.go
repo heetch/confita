@@ -273,7 +273,7 @@ func convert(data string, value *reflect.Value) error {
 		nv := reflect.MakeSlice(value.Type(), 0, 0)
 		ss := strings.Split(data, ",")
 		for _, s := range ss {
-			// retrieve a new Value v based on the type of the slice
+			// create a new Value v based on the type of the slice
 			v := reflect.Indirect(reflect.New(t.Elem()))
 			// call convert to set the current value of the slice to v
 			err = convert(s, &v)
