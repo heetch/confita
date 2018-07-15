@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/heetch/confita"
+	"github.com/heetch/confita/backend"
 	"github.com/stretchr/testify/require"
 )
 
@@ -96,4 +97,48 @@ func TestHelperProcess(t *testing.T) {
 	err = json.NewEncoder(os.Stderr).Encode(&cfg)
 	require.NoError(t, err)
 	os.Exit(0)
+}
+
+type store map[string]string
+
+func (s store) Get(ctx context.Context, key string) ([]byte, error) {
+	data, ok := s[key]
+	if !ok {
+		return nil, backend.ErrNotFound
+	}
+
+	return []byte(data), nil
+}
+
+func (store) Name() string {
+	return "store"
+}
+
+func TestWithAnotherBackend(t *testing.T) {
+	s := struct {
+		String   string        `config:"string,required"`
+		Bool     bool          `config:"bool,required"`
+		Int      int           `config:"int,required"`
+		Uint     uint          `config:"uint,required"`
+		Float    float64       `config:"float,required"`
+		Duration time.Duration `config:"duration,required"`
+	}{}
+
+	st := store{
+		"string":   "string",
+		"bool":     "true",
+		"int":      "42",
+		"uint":     "42",
+		"float":    "42.42",
+		"duration": "1ns",
+	}
+
+	err := confita.NewLoader(st, NewBackend()).Load(context.Background(), &s)
+	require.NoError(t, err)
+	require.Equal(t, "string", s.String)
+	require.Equal(t, true, s.Bool)
+	require.Equal(t, 42, s.Int)
+	require.EqualValues(t, 42, s.Uint)
+	require.Equal(t, 42.42, s.Float)
+	require.Equal(t, time.Duration(1), s.Duration)
 }
