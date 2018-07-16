@@ -58,17 +58,23 @@ func (b *Backend) LoadStruct(ctx context.Context, cfg *confita.StructConfig) err
 		case k >= reflect.Uint && k <= reflect.Uint64:
 			v := flag.Uint(f.Key, uint(f.Default.Uint()), "")
 			defer func() {
-				f.Value.SetUint(uint64(*v))
+				if isFlagSet(f.Key) {
+					f.Value.SetUint(uint64(*v))
+				}
 			}()
 		case k >= reflect.Float32 && k <= reflect.Float64:
 			v := flag.Float64(f.Key, f.Default.Float(), "")
 			defer func() {
-				f.Value.SetFloat(*v)
+				if isFlagSet(f.Key) {
+					f.Value.SetFloat(*v)
+				}
 			}()
 		case k == reflect.String:
 			v := flag.String(f.Key, f.Default.String(), "")
 			defer func() {
-				f.Value.SetString(*v)
+				if isFlagSet(f.Key) {
+					f.Value.SetString(*v)
+				}
 			}()
 		default:
 			flag.Var(&flagValue{f}, f.Key, "")
