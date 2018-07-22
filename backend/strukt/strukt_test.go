@@ -2,18 +2,22 @@ package strukt
 
 import (
 	"context"
-	"testing"
 	"github.com/heetch/confita/backend"
 	"github.com/stretchr/testify/require"
+	"testing"
 )
 
 func TestStruktBackend(t *testing.T) {
 	s := struct {
-		myName string
-		myAge  int
+		myString      string
+		myInt         int
+		myBool        bool
+		myStringSlice []string
 	}{
-		myName: "Greg",
-		myAge:  8,
+		myString:      "Greg",
+		myInt:         8,
+		myBool:        true,
+		myStringSlice: []string{"one", "two", "three", "four"},
 	}
 
 	b := NewBackend(s)
@@ -24,14 +28,26 @@ func TestStruktBackend(t *testing.T) {
 	})
 
 	t.Run("MatchString", func(t *testing.T) {
-		val, err := b.Get(context.Background(), "myName")
+		val, err := b.Get(context.Background(), "myString")
 		require.NoError(t, err)
 		require.Equal(t, "Greg", string(val))
 	})
 
 	t.Run("MatchInt", func(t *testing.T) {
-		val, err := b.Get(context.Background(), "myAge")
+		val, err := b.Get(context.Background(), "myInt")
 		require.NoError(t, err)
 		require.Equal(t, "8", string(val))
+	})
+
+	t.Run("MatchBool", func(t *testing.T) {
+		val, err := b.Get(context.Background(), "myBool")
+		require.NoError(t, err)
+		require.Equal(t, "true", string(val))
+	})
+
+	t.Run("MatchSlice", func(t *testing.T) {
+		val, err := b.Get(context.Background(), "myStringSlice")
+		require.NoError(t, err)
+		require.Equal(t, "one,two,three,four", string(val))
 	})
 }

@@ -2,16 +2,15 @@ package strukt
 
 import (
 	"context"
-	"reflect"
 	"fmt"
-	"strings"
-	"strconv"
 	"github.com/heetch/confita/backend"
+	"reflect"
+	"strconv"
 )
 
 type Backend struct {
-	v        reflect.Value
-	err      error
+	v   reflect.Value
+	err error
 }
 
 // NewBackend creates a configuration loader that loads from a struct.
@@ -31,11 +30,11 @@ func NewBackend(s interface{}) *Backend {
 func (b *Backend) Get(ctx context.Context, key string) ([]byte, error) {
 	if b.err != nil {
 		return nil, b.err
-	} 
+	}
 
 	val := b.v.FieldByName(key)
 	for val.Kind() == reflect.Ptr {
-		val := reflect.Indirect(val)
+		val = reflect.Indirect(val)
 	}
 
 	var str string
@@ -63,5 +62,3 @@ func (b *Backend) Get(ctx context.Context, key string) ([]byte, error) {
 func (b *Backend) Name() string {
 	return "strukt"
 }
-
-
