@@ -17,6 +17,14 @@ func NewBackend(fns ...opt) backend.Backend {
 		if ok {
 			return []byte(val), nil
 		}
+		if len(fns) == 0 {
+			key = strings.Replace(strings.ToUpper(key), "-", "_", -1)
+
+			val, ok = os.LookupEnv(key)
+			if ok {
+				return []byte(val), nil
+			}
+		}
 		return nil, backend.ErrNotFound
 	})
 }
