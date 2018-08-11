@@ -22,7 +22,7 @@ before_install:
   - docker run -d -p 8500:8500 --name consul consul
   - docker run -d -p 8200:8200 --cap-add=IPC_LOCK -e 'VAULT_DEV_ROOT_TOKEN_ID=root' -e 'VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200' vault:0.9.6
 
-install: dep ensure
+install: dep ensure -v -vendor-only
 
 script:
   - go test -v -race -cover -timeout=1m ./...
