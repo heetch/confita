@@ -11,6 +11,7 @@ Confita is a library that loads configuration from multiple backends and stores 
 - Environment variables
 - JSON files
 - Yaml files
+- Toml files
 - Command line flags
 - [etcd](https://github.com/coreos/etcd)
 - [Consul](https://www.consul.io/)

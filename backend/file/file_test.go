@@ -72,6 +72,17 @@ func TestFileBackend(t *testing.T) {
 		testLoad(t, path)
 	})
 
+	t.Run("TOML", func(t *testing.T) {
+		path, cleanup := createTempFile(t, "config.toml",
+			`name = "some name"
+age = 10
+timeout = 10
+`)
+		defer cleanup()
+
+		testLoad(t, path)
+	})
+
 	t.Run("Unsupported extension", func(t *testing.T) {
 		path, cleanup := createTempFile(t, "config.xml", `{
 			"name": "some name"

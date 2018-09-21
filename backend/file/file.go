@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/BurntSushi/toml"
 	"github.com/go-yaml/yaml"
 	"github.com/pkg/errors"
 )
@@ -47,6 +48,8 @@ func (b *Backend) Unmarshal(ctx context.Context, to interface{}) error {
 		fallthrough
 	case ".yaml":
 		err = yaml.NewDecoder(f).Decode(to)
+	case ".toml":
+		_, err = toml.DecodeReader(f, to)
 	default:
 		err = errors.Errorf("unsupported extension \"%s\"", ext)
 	}
