@@ -3,8 +3,8 @@
   version = "3.0.0"
 
 [[constraint]]
-  name = "github.com/go-yaml/yaml"
-  version = "2.0.0"
+  name = "gopkg.in/yaml.v2"
+  version = "2.2.1"
 
 [[constraint]]
   name = "github.com/hashicorp/consul"
