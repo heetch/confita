@@ -45,3 +45,6 @@ func (b *Backend) Get(ctx context.Context, key string) ([]byte, error) {
 
 	return nil, backend.ErrNotFound
 }
+func (b *Backend) Name() string {
+	return "vault"
+}
