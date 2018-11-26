@@ -59,6 +59,7 @@ type Config struct {
   Database struct {
     URI string              `config:"database-uri,required"`
   }
+}
 ```
 
 If a field is a slice, Confita will automatically split the config value by commas and fill the slice with each sub value.
