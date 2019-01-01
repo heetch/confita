@@ -58,6 +58,17 @@ func TestOpts(t *testing.T) {
 			},
 			want: "TEST_VAR",
 		},
+		{
+			name: "Test upper after prefix with lower key",
+			args: args{
+				fns: []opt{
+					WithPrefix("test"),
+					ToUpper(),
+				},
+				key: "var",
+			},
+			want: "TEST_VAR",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
