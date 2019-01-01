@@ -18,6 +18,10 @@ func NewBackend(fns ...opt) backend.Backend {
 		if ok {
 			return []byte(val), nil
 		}
+		val, ok = os.LookupEnv(opts(strings.ToUpper(key), fns...))
+		if ok {
+			return []byte(val), nil
+		}
 		return nil, backend.ErrNotFound
 	})
 }
