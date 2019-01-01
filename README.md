@@ -20,7 +20,7 @@ Confita is a library that loads configuration from multiple backends and stores 
 ## Install
 
 ```sh
-go get -u github.com/heetch/confita
+go get -u github.com/karantin2020/confita
 ```
 
 ## Usage
@@ -95,7 +95,10 @@ A loader can take other configured backends as parameters.
 
 ```go
 loader := confita.NewLoader(
-  env.NewBackend(),
+  env.NewBackend(
+    env.WithPrefix("PREFIX"),
+		env.ToUpper(),
+  ),
   file.NewBackend("/path/to/config.json"),
   file.NewBackend("/path/to/config.yaml"),
   flags.NewBackend(),
@@ -124,7 +127,6 @@ err := loader.Load(ctx, &cfg)
 If a key is not found, Confita won't change the respective struct field. With that in mind, default values can simply be implemented by filling the structure before passing it to Confita.
 
 ```go
-
 type Config struct {
   Host        string        `config:"host"`
   Port        uint32        `config:"port"`
