@@ -14,7 +14,6 @@ var (
 type Backend interface {
 	Get(ctx context.Context, key string) ([]byte, error)
 	Name() string
-	Defaults() map[string]string
 }
 
 // Func creates a Backend from a function.
@@ -39,8 +38,4 @@ func (b *backendFunc) Get(ctx context.Context, key string) ([]byte, error) {
 
 func (b *backendFunc) Name() string {
 	return b.name
-}
-
-func (b *backendFunc) Defaults() map[string]string {
-	return b.defaults
 }
