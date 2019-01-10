@@ -29,6 +29,13 @@ func (store) Name() string {
 	return "store"
 }
 
+func (store) Defaults() map[string]string {
+	var defaults map[string]string
+
+	defaults["name"] = "name"
+	return defaults
+}
+
 type longRunningStore time.Duration
 
 func (s longRunningStore) Get(ctx context.Context, key string) ([]byte, error) {
