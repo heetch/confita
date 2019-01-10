@@ -14,6 +14,7 @@ var (
 type Backend interface {
 	Get(ctx context.Context, key string) ([]byte, error)
 	Name() string
+	Defaults() map[string]string
 }
 
 // Func creates a Backend from a function.
@@ -21,9 +22,15 @@ func Func(name string, fn func(context.Context, string) ([]byte, error)) Backend
 	return &backendFunc{fn: fn, name: name}
 }
 
+// Func creates a Backend from a function and allows users to add a defai;t map.
+func FuncWithDefaults(name string, defaults map[string]string, fn func(context.Context, string) ([]byte, error)) Backend {
+	return &backendFunc{fn: fn, name: name, defaults: defaults}
+}
+
 type backendFunc struct {
 	fn   func(context.Context, string) ([]byte, error)
 	name string
+	defaults map[string]string
 }
 
 func (b *backendFunc) Get(ctx context.Context, key string) ([]byte, error) {
@@ -32,4 +39,8 @@ func (b *backendFunc) Get(ctx context.Context, key string) ([]byte, error) {
 
 func (b *backendFunc) Name() string {
 	return b.name
+}
+
+func (b *backendFunc) Defaults() map[string]string {
+	return b.defaults
 }
