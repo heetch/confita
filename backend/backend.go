@@ -21,7 +21,7 @@ func Func(name string, fn func(context.Context, string) ([]byte, error)) Backend
 	return &backendFunc{fn: fn, name: name}
 }
 
-// Func creates a Backend from a function and allows users to add a defai;t map.
+// FuncWithDefaults creates a Backend from a function and allows users to add a default map.
 func FuncWithDefaults(name string, defaults map[string]string, fn func(context.Context, string) ([]byte, error)) Backend {
 	return &backendFunc{fn: fn, name: name, defaults: defaults}
 }
