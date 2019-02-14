@@ -5,25 +5,46 @@ language: go
 services:
   - docker
 
-go:
-  - 1.9.x
-  - 1.10.x
-  - 1.11.x
-  - tip
-
 env:
-  - VAULT_ADDR=http://127.0.0.1:8200
+  global:
+    - VAULT_ADDR=http://127.0.0.1:8200
+    - DEP_VERSION="0.5.0"
+    - GO111MODULE=on
+
+matrix:
+  # It's ok if our code fails on unstable development versions of Go.
+  allow_failures:
+    - go: tip
+  # Don't wait for tip tests to finish. Mark the test run green if the
+  # tests pass on the stable versions of Go.
+  fast_finish: true
+  include:
+  - go: 1.9.x
+    install: dep ensure -v -vendor-only
+    script: go test -v -race -cover -timeout=1m ./...
+  - go: 1.10.x
+    install: dep ensure -v -vendor-only
+    script: go test -v -race -cover -timeout=1m ./...
+  - go: 1.11.x
+    before_install: skip
+    install:
+      - go build ./...
+      - go mod vendor
+    script: go test -v -race -cover -timeout=1m -mod=vendor ./...
+  - go: tip
+    before_install: skip
+    install:
+      - go build ./...
+      - go mod vendor
+    script: go test -v -race -cover -timeout=1m -mod=vendor ./...
 
 before_install:
   - mkdir -p $GOPATH/bin
-  - wget -O $GOPATH/bin/dep "https://github.com/golang/dep/releases/download/v0.5.0/dep-linux-amd64"
+  - wget -O $GOPATH/bin/dep "https://github.com/golang/dep/releases/download/v${DEP_VERSION}/dep-linux-amd64"
   - chmod +x $GOPATH/bin/dep
   - export PATH="$GOPATH/bin:$PATH"
+
+before_script:
   - docker run -d -p 2379:2379 quay.io/coreos/etcd /usr/local/bin/etcd -advertise-client-urls http://0.0.0.0:2379 -listen-client-urls http://0.0.0.0:2379
   - docker run -d -p 8500:8500 --name consul consul
   - docker run -d -p 8200:8200 --cap-add=IPC_LOCK -e 'VAULT_DEV_ROOT_TOKEN_ID=root' -e 'VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200' vault:0.9.6
-
-install: dep ensure -v -vendor-only
-
-script:
-  - go test -v -race -cover -timeout=1m ./...
