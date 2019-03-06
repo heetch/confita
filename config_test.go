@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"math"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -436,6 +437,32 @@ func TestSliceField(t *testing.T) {
 		err := confita.NewLoader(st).Load(context.Background(), &s)
 		require.NoError(t, err)
 		require.EqualValues(t, e, s.Letters)
+	})
+
+	t.Run("Slice of string - custom slice parser - empty", func(t *testing.T) {
+		testStruct := struct {
+			Pairs []string `config:"pairs"`
+		}{}
+
+		input := store{
+			"pairs": "key1=value1 key2=value2a,value2b",
+		}
+		expected := []string{
+			"key1=value1",
+			"key2=value2a,value2b",
+		}
+
+		originalParseSlice := confita.ParseSlice
+		defer func() {
+			confita.ParseSlice = originalParseSlice
+		}()
+		confita.ParseSlice = func(src string) []string {
+			return strings.Split(src, " ")
+		}
+
+		err := confita.NewLoader(input).Load(context.Background(), &testStruct)
+		require.NoError(t, err)
+		require.EqualValues(t, expected, testStruct.Pairs)
 	})
 
 	t.Run("Slice of string - non-empty - no appending", func(t *testing.T) {
