@@ -70,6 +70,14 @@ type Config struct {
 }
 ```
 
+Splitting strategy could be customized by providing own implementation of "ParseSlice" function.
+
+```go
+confita.ParseSlice = func(src string) []string {
+  return strings.Split(src, " ")
+}
+```
+
 As a special case, if the field tag is "-", the field is always omitted. This is useful if you want to populate this field on your own.
 
 ```go

@@ -23,6 +23,15 @@ type Loader struct {
 	Tag string
 }
 
+// SliceParser parses a raw input string as a slice of strings accordingly to a built-in slice separator
+type SliceParser func(src string) []string
+
+// ParseSlice specifies a default strategy to parse array strings as slices.
+// "," (comma) is used a separator between slice elements.
+var ParseSlice SliceParser = func(src string) []string {
+	return strings.Split(src, ",")
+}
+
 // NewLoader creates a Loader. If no backend is specified, the loader uses the environment.
 func NewLoader(backends ...backend.Backend) *Loader {
 	l := Loader{
@@ -55,6 +64,7 @@ func (l *Loader) Load(ctx context.Context, to interface{}) error {
 
 	s := l.parseStruct(&ref)
 	s.S = to
+
 	return l.resolve(ctx, s)
 }
 
@@ -271,7 +281,7 @@ func convert(data string, value *reflect.Value) error {
 		var err error
 		// create a new temporary slice to override the actual Value if it's not empty
 		nv := reflect.MakeSlice(value.Type(), 0, 0)
-		ss := strings.Split(data, ",")
+		ss := ParseSlice(data)
 		for _, s := range ss {
 			// create a new Value v based on the type of the slice
 			v := reflect.Indirect(reflect.New(t.Elem()))
