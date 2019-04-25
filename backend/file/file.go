@@ -3,6 +3,7 @@ package file
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -14,21 +15,24 @@ import (
 // Backend that loads a configuration from a file.
 // It supports json and yaml formats.
 type Backend struct {
-	path string
-	name string
+	path     string
+	name     string
+	optional bool
 }
 
 // NewBackend creates a configuration loader that loads from a file.
 // The content will get decoded based on the file extension.
-func NewBackend(path string) *Backend {
+// If optional parameter is set to true, calling Unmarshal won't return an error if the file doesn't exist.
+func NewBackend(path string, optional bool) *Backend {
 	name := filepath.Ext(path)
 	if name != "" {
 		name = name[1:]
 	}
 
 	return &Backend{
-		path: path,
-		name: name,
+		path:     path,
+		name:     name,
+		optional: optional,
 	}
 }
 
@@ -37,6 +41,10 @@ func NewBackend(path string) *Backend {
 func (b *Backend) Unmarshal(ctx context.Context, to interface{}) error {
 	f, err := os.Open(b.path)
 	if err != nil {
+		if b.optional {
+			fmt.Printf("failed to open file at path \"%s\": %s\n", b.path, err.Error())
+			return nil
+		}
 		return errors.Wrapf(err, "failed to open file at path \"%s\"", b.path)
 	}
 	defer f.Close()

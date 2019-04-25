@@ -41,7 +41,7 @@ func TestFileBackend(t *testing.T) {
 
 	testLoad := func(t *testing.T, path string) {
 		var c config
-		b := file.NewBackend(path)
+		b := file.NewBackend(path, false)
 
 		err := b.Unmarshal(context.Background(), &c)
 		require.NoError(t, err)
@@ -90,17 +90,25 @@ timeout = 10
 		defer cleanup()
 
 		var c config
-		b := file.NewBackend(path)
+		b := file.NewBackend(path, false)
 
 		err := b.Unmarshal(context.Background(), &c)
 		require.Error(t, err)
 	})
 
-	t.Run("File not found", func(t *testing.T) {
+	t.Run("Required file not found", func(t *testing.T) {
 		var c config
-		b := file.NewBackend("some path")
+		b := file.NewBackend("some path", false)
 
 		err := b.Unmarshal(context.Background(), &c)
 		require.Error(t, err)
+	})
+
+	t.Run("Optional file not found", func(t *testing.T) {
+		var c config
+		b := file.NewBackend("some path", true)
+
+		err := b.Unmarshal(context.Background(), &c)
+		require.NoError(t, err)
 	})
 }
