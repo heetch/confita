@@ -33,7 +33,7 @@ func (b *Backend) LoadStruct(ctx context.Context, cfg *confita.StructConfig) err
 		switch {
 		case f.Value.Type().String() == "time.Duration":
 			// define the flag and its default value
-			v := flag.Duration(f.Key, time.Duration(f.Default.Int()), "")
+			v := flag.Duration(f.Key, time.Duration(f.Default.Int()), f.Description)
 			// this function must be executed after the flag.Parse call.
 			defer func() {
 				// if the user has set the flag, save the value in the field.
@@ -42,42 +42,42 @@ func (b *Backend) LoadStruct(ctx context.Context, cfg *confita.StructConfig) err
 				}
 			}()
 		case k == reflect.Bool:
-			v := flag.Bool(f.Key, f.Default.Bool(), "")
+			v := flag.Bool(f.Key, f.Default.Bool(), f.Description)
 			defer func() {
 				if isFlagSet(f.Key) {
 					f.Value.SetBool(*v)
 				}
 			}()
 		case k >= reflect.Int && k <= reflect.Int64:
-			v := flag.Int(f.Key, int(f.Default.Int()), "")
+			v := flag.Int(f.Key, int(f.Default.Int()), f.Description)
 			defer func() {
 				if isFlagSet(f.Key) {
 					f.Value.SetInt(int64(*v))
 				}
 			}()
 		case k >= reflect.Uint && k <= reflect.Uint64:
-			v := flag.Uint(f.Key, uint(f.Default.Uint()), "")
+			v := flag.Uint(f.Key, uint(f.Default.Uint()), f.Description)
 			defer func() {
 				if isFlagSet(f.Key) {
 					f.Value.SetUint(uint64(*v))
 				}
 			}()
 		case k >= reflect.Float32 && k <= reflect.Float64:
-			v := flag.Float64(f.Key, f.Default.Float(), "")
+			v := flag.Float64(f.Key, f.Default.Float(), f.Description)
 			defer func() {
 				if isFlagSet(f.Key) {
 					f.Value.SetFloat(*v)
 				}
 			}()
 		case k == reflect.String:
-			v := flag.String(f.Key, f.Default.String(), "")
+			v := flag.String(f.Key, f.Default.String(), f.Description)
 			defer func() {
 				if isFlagSet(f.Key) {
 					f.Value.SetString(*v)
 				}
 			}()
 		default:
-			flag.Var(&flagValue{f}, f.Key, "")
+			flag.Var(&flagValue{f}, f.Key, f.Description)
 		}
 	}
 

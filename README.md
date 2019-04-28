@@ -171,6 +171,24 @@ Usage of ./bin:
        (default 10s)
 ```
 
+
+### Description option
+
+By default, all fields have no description. Description can be added by option `description`.
+```go
+type Config struct {
+    Port    uint32  `config:"port,description=Application http server port"`
+}
+```
+
+```sh
+./bin -h
+
+Usage of ./bin:
+  -port uint
+        Application http server port (default 5656)
+```
+
 ## License
 
 The library is released under the MIT license. See LICENSE file.
