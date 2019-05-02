@@ -109,6 +109,8 @@ timeout = 10
 		b := file.NewBackend("some path", true)
 
 		err := b.Unmarshal(context.Background(), &c)
-		require.NoError(t, err)
+		require.Error(t, err)
+		_, ok := err.(file.ErrOpenOptionalFile)
+		require.True(t, ok)
 	})
 }
