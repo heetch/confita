@@ -12,6 +12,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// ErrOpenOptionalFile is returned when opening an optional file returns an error.
 type ErrOpenOptionalFile error
 
 // Backend that loads a configuration from a file.
