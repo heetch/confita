@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"log"
 	"reflect"
 	"strconv"
 	"strings"
@@ -11,6 +14,7 @@ import (
 
 	"github.com/heetch/confita/backend"
 	"github.com/heetch/confita/backend/env"
+	"github.com/heetch/confita/backend/file"
 )
 
 // Loader loads configuration keys from backends and stores them is a struct.
@@ -21,6 +25,8 @@ type Loader struct {
 	// configuration keys and options.
 	// If empty, "config" is used.
 	Tag string
+
+	log *log.Logger
 }
 
 // Unmarshaler can be implemented by backends to receive the struct directly and load values into it.
@@ -37,6 +43,7 @@ type StructLoader interface {
 func NewLoader(backends ...backend.Backend) *Loader {
 	l := Loader{
 		backends: backends,
+		log:      log.New(ioutil.Discard, "[confita] ", log.LstdFlags),
 	}
 
 	if len(l.backends) == 0 {
@@ -44,6 +51,12 @@ func NewLoader(backends ...backend.Backend) *Loader {
 	}
 
 	return &l
+}
+
+// SetLoggerOutput is used for setting a writter for Confita's logger.
+// By default, it logs to ioutil.Discard.
+func (l *Loader) SetLoggerOutput(w io.Writer) {
+	l.log.SetOutput(w)
 }
 
 // Load analyses all the Fields of the given struct for a "config" tag and queries each backend
@@ -172,6 +185,10 @@ func (l *Loader) resolve(ctx context.Context, s *StructConfig) error {
 		if u, ok := b.(Unmarshaler); ok {
 			err := u.Unmarshal(ctx, s.S)
 			if err != nil {
+				if uerr, ok := err.(file.ErrOpenOptionalFile); ok {
+					l.log.Println(uerr.Error())
+					continue
+				}
 				return err
 			}
 

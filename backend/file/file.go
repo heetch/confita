@@ -12,6 +12,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+type ErrOpenOptionalFile error
+
 // Backend that loads a configuration from a file.
 // It supports json and yaml formats.
 type Backend struct {
@@ -42,8 +44,7 @@ func (b *Backend) Unmarshal(ctx context.Context, to interface{}) error {
 	f, err := os.Open(b.path)
 	if err != nil {
 		if b.optional {
-			fmt.Printf("failed to open file at path \"%s\": %s\n", b.path, err.Error())
-			return nil
+			return ErrOpenOptionalFile(fmt.Errorf("failed to open optional file at path \"%s\": %s", b.path, err.Error()))
 		}
 		return errors.Wrapf(err, "failed to open file at path \"%s\"", b.path)
 	}
