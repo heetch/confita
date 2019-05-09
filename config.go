@@ -185,7 +185,7 @@ func (l *Loader) resolve(ctx context.Context, s *StructConfig) error {
 		if u, ok := b.(Unmarshaler); ok {
 			err := u.Unmarshal(ctx, s.S)
 			if err != nil {
-				if uerr, ok := err.(file.ErrOpenOptionalFile); ok {
+				if uerr, ok := err.(*file.ErrOpenOptionalFile); ok {
 					l.log.Println(uerr.Error())
 					continue
 				}

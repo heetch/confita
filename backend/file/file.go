@@ -13,7 +13,14 @@ import (
 )
 
 // ErrOpenOptionalFile is returned when opening an optional file returns an error.
-type ErrOpenOptionalFile error
+type ErrOpenOptionalFile struct {
+	path string
+	err  error
+}
+
+func (e *ErrOpenOptionalFile) Error() string {
+	return fmt.Sprintf("failed to open optional file at path \"%s\": %s", e.path, e.err.Error())
+}
 
 // Backend that loads a configuration from a file.
 // It supports json and yaml formats.
@@ -45,7 +52,7 @@ func (b *Backend) Unmarshal(ctx context.Context, to interface{}) error {
 	f, err := os.Open(b.path)
 	if err != nil {
 		if b.optional {
-			return ErrOpenOptionalFile(fmt.Errorf("failed to open optional file at path \"%s\": %s", b.path, err.Error()))
+			return &ErrOpenOptionalFile{path: b.path, err: err}
 		}
 		return errors.Wrapf(err, "failed to open file at path \"%s\"", b.path)
 	}

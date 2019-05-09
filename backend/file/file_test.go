@@ -110,7 +110,7 @@ timeout = 10
 
 		err := b.Unmarshal(context.Background(), &c)
 		require.Error(t, err)
-		_, ok := err.(file.ErrOpenOptionalFile)
+		_, ok := err.(*file.ErrOpenOptionalFile)
 		require.True(t, ok)
 	})
 }
