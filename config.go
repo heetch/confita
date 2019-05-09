@@ -4,9 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"log"
 	"reflect"
 	"strconv"
 	"strings"
@@ -24,8 +21,6 @@ type Loader struct {
 	// configuration keys and options.
 	// If empty, "config" is used.
 	Tag string
-
-	log *log.Logger
 }
 
 // Unmarshaler can be implemented by backends to receive the struct directly and load values into it.
@@ -42,7 +37,6 @@ type StructLoader interface {
 func NewLoader(backends ...backend.Backend) *Loader {
 	l := Loader{
 		backends: backends,
-		log:      log.New(ioutil.Discard, "[confita] ", log.LstdFlags),
 	}
 
 	if len(l.backends) == 0 {
@@ -50,12 +44,6 @@ func NewLoader(backends ...backend.Backend) *Loader {
 	}
 
 	return &l
-}
-
-// SetLoggerOutput is used for setting a writter for Confita's logger.
-// By default, it logs to ioutil.Discard.
-func (l *Loader) SetLoggerOutput(w io.Writer) {
-	l.log.SetOutput(w)
 }
 
 // Load analyses all the Fields of the given struct for a "config" tag and queries each backend
