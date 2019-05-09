@@ -3,24 +3,14 @@ package file
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/BurntSushi/toml"
+	"github.com/heetch/confita/backend"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
-
-// ErrOpenOptionalFile is returned when opening an optional file returns an error.
-type ErrOpenOptionalFile struct {
-	path string
-	err  error
-}
-
-func (e *ErrOpenOptionalFile) Error() string {
-	return fmt.Sprintf("failed to open optional file at path \"%s\": %s", e.path, e.err.Error())
-}
 
 // Backend that loads a configuration from a file.
 // It supports json and yaml formats.
@@ -33,7 +23,21 @@ type Backend struct {
 // NewBackend creates a configuration loader that loads from a file.
 // The content will get decoded based on the file extension.
 // If optional parameter is set to true, calling Unmarshal won't return an error if the file doesn't exist.
-func NewBackend(path string, optional bool) *Backend {
+func NewBackend(path string) *Backend {
+	name := filepath.Ext(path)
+	if name != "" {
+		name = name[1:]
+	}
+
+	return &Backend{
+		path: path,
+		name: name,
+	}
+}
+
+// NewOptionalBackend implementation is exactly the same as NewBackend except that
+// if the file is not found, backend.ErrNotFound will be returned.
+func NewOptionalBackend(path string) *Backend {
 	name := filepath.Ext(path)
 	if name != "" {
 		name = name[1:]
@@ -42,7 +46,7 @@ func NewBackend(path string, optional bool) *Backend {
 	return &Backend{
 		path:     path,
 		name:     name,
-		optional: optional,
+		optional: true,
 	}
 }
 
@@ -52,7 +56,7 @@ func (b *Backend) Unmarshal(ctx context.Context, to interface{}) error {
 	f, err := os.Open(b.path)
 	if err != nil {
 		if b.optional {
-			return &ErrOpenOptionalFile{path: b.path, err: err}
+			return backend.ErrNotFound
 		}
 		return errors.Wrapf(err, "failed to open file at path \"%s\"", b.path)
 	}

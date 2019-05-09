@@ -14,7 +14,6 @@ import (
 
 	"github.com/heetch/confita/backend"
 	"github.com/heetch/confita/backend/env"
-	"github.com/heetch/confita/backend/file"
 )
 
 // Loader loads configuration keys from backends and stores them is a struct.
@@ -185,8 +184,7 @@ func (l *Loader) resolve(ctx context.Context, s *StructConfig) error {
 		if u, ok := b.(Unmarshaler); ok {
 			err := u.Unmarshal(ctx, s.S)
 			if err != nil {
-				if uerr, ok := err.(*file.ErrOpenOptionalFile); ok {
-					l.log.Println(uerr.Error())
+				if err == backend.ErrNotFound {
 					continue
 				}
 				return err
@@ -218,7 +216,6 @@ func (l *Loader) resolve(ctx context.Context, s *StructConfig) error {
 				if err == backend.ErrNotFound {
 					continue
 				}
-
 				return err
 			}
 
