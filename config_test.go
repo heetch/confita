@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"math"
+	"regexp"
 	"strconv"
 	"testing"
 	"time"
@@ -85,6 +86,7 @@ func TestLoad(t *testing.T) {
 		StructPtrNil    *nested
 		StructPtrNotNil *nested
 		Ignored         string
+		unexported      int `config:"ignore"`
 	}
 
 	var s testStruct
@@ -492,4 +494,101 @@ func TestSliceField(t *testing.T) {
 		require.Equal(t, 21, *s.Numbers[1])
 		require.Equal(t, 42, *s.Numbers[2])
 	})
+}
+
+var errorTests = []struct {
+	testName    string
+	store       store
+	into        interface{}
+	expectError string
+}{{
+	testName: "bad-duration",
+	store: store{
+		"X": "xxxx",
+	},
+	into: new(struct {
+		X time.Duration `config:"X"`
+	}),
+	expectError: `time: invalid duration xxxx`,
+}, {
+	testName: "bad-bool",
+	store: store{
+		"X": "xxxx",
+	},
+	into: new(struct {
+		X bool `config:"X"`
+	}),
+	expectError: `strconv.ParseBool: parsing "xxxx": invalid syntax`,
+}, {
+	testName: "bad-int",
+	store: store{
+		"X": "xxxx",
+	},
+	into: new(struct {
+		X int `config:"X"`
+	}),
+	expectError: `strconv.ParseInt: parsing "xxxx": invalid syntax`,
+}, {
+	testName: "bad-uint",
+	store: store{
+		"X": "xxxx",
+	},
+	into: new(struct {
+		X uint `config:"X"`
+	}),
+	expectError: `strconv.ParseUint: parsing "xxxx": invalid syntax`,
+}, {
+	testName: "out-of-range-int",
+	store: store{
+		"X": "128",
+	},
+	into: new(struct {
+		X int8 `config:"X"`
+	}),
+	expectError: `strconv.ParseInt: parsing "128": value out of range`,
+}, {
+	testName: "out-of-range-uint",
+	store: store{
+		"X": "256",
+	},
+	into: new(struct {
+		X uint8 `config:"X"`
+	}),
+	expectError: `strconv.ParseUint: parsing "256": value out of range`,
+}, {
+	testName: "bad-float",
+	store: store{
+		"X": "xxxx",
+	},
+	into: new(struct {
+		X float64 `config:"X"`
+	}),
+	expectError: `strconv.ParseFloat: parsing "xxxx": invalid syntax`,
+}, {
+	testName: "unsupported-field-type",
+	store: store{
+		"X": "xxxx",
+	},
+	into: new(struct {
+		X uintptr `config:"X"`
+	}),
+	expectError: `field type 'uintptr' not supported`,
+}, {
+	testName:    "not-struct-pointer",
+	into:        struct{}{},
+	expectError: `provided target must be a pointer to struct`,
+}}
+
+func TestError(t *testing.T) {
+	for _, test := range errorTests {
+		t.Run(test.testName, func(t *testing.T) {
+			err := confita.NewLoader(test.store).Load(context.Background(), test.into)
+			if err == nil {
+				t.Fatalf("unexpected success; into %#v", test.into)
+			}
+			if ok, err1 := regexp.MatchString("^("+test.expectError+")$", err.Error()); !ok || err1 != nil {
+				t.Fatalf("error mismatch; got %q want %q", err, test.expectError)
+			}
+		})
+	}
 }
