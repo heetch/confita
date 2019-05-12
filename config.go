@@ -1,251 +1,239 @@
+// Package confita allows multiple packages to obtain configuration from an open-ended
+// set of possible data sources (backends).
 package confita
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/heetch/confita/backend"
-	"github.com/heetch/confita/backend/env"
+	"github.com/pkg/errors"
 )
 
-// Loader loads configuration keys from backends and stores them is a struct.
+var ErrNotFound = errors.New("configuration value not found")
+
+// Loader can be used to load configuration information
+// from a variety of sources.
 type Loader struct {
-	backends []backend.Backend
-
-	// Tag specifies the tag name used to parse
-	// configuration keys and options.
-	// If empty, "config" is used.
-	Tag string
+	backends []Backend
 }
 
-// Unmarshaler can be implemented by backends to receive the struct directly and load values into it.
-type Unmarshaler interface {
-	Unmarshal(ctx context.Context, to interface{}) error
+// Backend provides a way of getting values from a particular
+// configuration source.
+type Backend interface {
+	// UseFieldNameKey reports whether the backend expects the key passed
+	// to Unmarshal to be the field name, not the name specified in the field tag.
+	// Most backends should report false for this - it's here
+	// for the benefit of supporting legacy behaviour in the file backend.
+	UseFieldNameKey() bool
+
+	// Get unmarshals the value associated with the given key
+	// into the value pointed to by to, which will
+	// be one of the types as documented in Unmarshal.
+	//
+	// If there is no value for the key, Get should return
+	// ErrNotFound.
+	//
+	// This method may be called concurrently.
+	Unmarshal(ctx context.Context, key string, to interface{}) error
 }
 
-// StructLoader can be implemented by backends to receive the parsed struct informations and load values into it.
-type StructLoader interface {
-	LoadStruct(ctx context.Context, cfg *StructConfig) error
+// Environ implements Backend by fetching values
+// from environment variables.
+var Environ = environBackend{}
+
+type environBackend struct{}
+
+// Unmarshal implements Backend.Unmarshal.
+func (environBackend) Unmarshal(ctx context.Context, key string, to interface{}) error {
+	return Unmarshal(key, to)
 }
 
-// NewLoader creates a Loader. If no backend is specified, the loader uses the environment.
-func NewLoader(backends ...backend.Backend) *Loader {
-	l := Loader{
+// UseFieldNameKey implements Backend.UseFieldNameKey.
+func (environBackend) UseFieldNameKey() bool {
+	return false
+}
+
+// NewLoader creates a new Loader instance that will use all the given
+// backends for configuration information. Later backends
+// in the slice take precedence over earlier ones.
+//
+// If no backends are specified, Environ will be used.
+func NewLoader(backends ...Backend) *Loader {
+	if len(backends) == 0 {
+		backends = []Backend{Environ}
+	}
+	return &Loader{
 		backends: backends,
 	}
-
-	if len(l.backends) == 0 {
-		l.backends = append(l.backends, env.NewBackend())
-	}
-
-	return &l
 }
 
-// Load analyses all the Fields of the given struct for a "config" tag and queries each backend
-// in order for the corresponding key. The given context can be used for timeout and cancelation.
+// Load loads configuration information into the given value, which must
+// be a pointer to a struct.
+//
+// It inspects each exported field of the struct. If a field has a "config" tag
+// or is itself a struct or pointer to a struct, it will be considered for
+// loading.
+//
+// If the field has a "config" tag, its value will be fetched from all
+// backends in sequence, with each backend potentially overriding the
+// previous one. The key used to fetch the value will be the lower-cased
+// field name, except when using the Environ provider, which will use
+// the value of the config tag.
+//
+// The special tag value "-" can be used to suppress processing of a
+// field even if that field is a struct or pointer to struct.
+//
+// If the field is a struct or a pointer to a struct, the fields of that struct will
+// be considered by Load recursively.
+//
+// The following type kinds are supported by fields with the "config"
+// tag:
+//
+//    bool
+//    string
+//    time.Duration
+//    numeric types except complex numbers
+//    a slice of any of the above
 func (l *Loader) Load(ctx context.Context, to interface{}) error {
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	default:
-	}
-
-	ref := reflect.ValueOf(to)
-
-	if !ref.IsValid() || ref.Kind() != reflect.Ptr || ref.Elem().Kind() != reflect.Struct {
+	v := reflect.ValueOf(to)
+	t := v.Type()
+	if t.Kind() != reflect.Ptr || t.Elem().Kind() != reflect.Struct {
 		return errors.New("provided target must be a pointer to struct")
 	}
-
-	ref = ref.Elem()
-
-	s := l.parseStruct(ref)
-	s.S = to
-	return l.resolve(ctx, s)
+	return l.loadStruct(ctx, v.Elem())
 }
 
-func (l *Loader) parseStruct(ref reflect.Value) *StructConfig {
-	var s StructConfig
-
-	t := ref.Type()
-
-	numFields := ref.NumField()
-	for i := 0; i < numFields; i++ {
+func (l *Loader) loadStruct(ctx context.Context, v reflect.Value) error {
+	t := v.Type()
+	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
-		value := ref.Field(i)
-		typ := value.Type()
-
-		// skip if field is unexported
+		if field.Anonymous {
+			// TODO support embedding
+			return errors.New("anonymous fields not supported")
+		}
 		if field.PkgPath != "" {
+			// Field is not exported; skip it.
 			continue
 		}
-
-		tagKey := l.Tag
-		if tagKey == "" {
-			tagKey = "config"
-		}
-
-		tag := field.Tag.Get(tagKey)
+		tag := field.Tag.Get("config")
 		if tag == "-" {
 			continue
 		}
-
-		// if struct or *struct, parse recursively
-		switch typ.Kind() {
+		fieldv := v.Field(i)
+		fieldt := field.Type
+		// If struct or *struct, parse recursively
+		switch fieldt.Kind() {
 		case reflect.Struct:
-			s.Fields = append(s.Fields, l.parseStruct(value).Fields...)
-			continue
+			if err := l.loadStruct(ctx, fieldv); err != nil {
+				return err
+			}
 		case reflect.Ptr:
-			if typ.Elem().Kind() == reflect.Struct && !value.IsNil() {
-				s.Fields = append(s.Fields, l.parseStruct(value.Elem()).Fields...)
-				continue
+			if fieldv.IsNil() || fieldt.Elem().Kind() != reflect.Struct {
+				break
 			}
-		}
-
-		// empty tag or no tag, skip the field
-		if tag == "" {
-			continue
-		}
-
-		f := FieldConfig{
-			Name:  field.Name,
-			Key:   tag,
-			Value: value,
-		}
-
-		// copying field content to a new value
-		clone := reflect.Indirect(reflect.New(f.Value.Type()))
-		clone.Set(f.Value)
-		f.Default = clone
-
-		if idx := strings.Index(tag, ","); idx != -1 {
-			f.Key = tag[:idx]
-			opts := strings.Split(tag[idx+1:], ",")
-
-			for _, opt := range opts {
-				if opt == "required" {
-					f.Required = true
-				}
-
-				if strings.HasPrefix(opt, "backend=") {
-					f.Backend = opt[len("backend="):]
-				}
+			if err := l.loadStruct(ctx, fieldv.Elem()); err != nil {
+				return err
 			}
-		}
-
-		s.Fields = append(s.Fields, &f)
-	}
-
-	return &s
-}
-
-func (l *Loader) resolve(ctx context.Context, s *StructConfig) error {
-	for _, f := range s.Fields {
-		if f.Backend != "" {
-			var found bool
-			for _, b := range l.backends {
-				if b.Name() == f.Backend {
-					found = true
-					break
-				}
-			}
-
-			if !found {
-				return fmt.Errorf("the backend: '%s' is not supported", f.Backend)
-			}
-		}
-	}
-
-	for _, b := range l.backends {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
 		default:
-		}
-
-		if u, ok := b.(Unmarshaler); ok {
-			err := u.Unmarshal(ctx, s.S)
-			if err != nil {
-				return err
+			if tag == "" {
+				break
 			}
-
-			continue
-		}
-
-		if u, ok := b.(StructLoader); ok {
-			err := u.LoadStruct(ctx, s)
-			if err != nil {
-				return err
-			}
-
-			continue
-		}
-
-		for _, f := range s.Fields {
-			if f.Backend != "" && f.Backend != b.Name() {
-				continue
-			}
-
-			raw, err := b.Get(ctx, f.Key)
-			if err != nil {
-				if err == backend.ErrNotFound {
-					continue
-				}
-
-				return err
-			}
-
-			err = convert(string(raw), f.Value)
-			if err != nil {
-				return err
+			if err := l.loadField(ctx, fieldv, field, tag); err != nil {
+				return errors.WithStack(err)
 			}
 		}
 	}
-
-	for _, f := range s.Fields {
-		if f.Required && isZero(f.Value) {
-			return fmt.Errorf("required key '%s' for field '%s' not found", f.Key, f.Name)
-		}
-	}
-
 	return nil
 }
 
-// StructConfig holds informations about each field of a struct S.
-type StructConfig struct {
-	S      interface{}
-	Fields []*FieldConfig
+// loadField loads the value from the given value, which is described as the
+// given field, where tag is the confita-specific struct field tag parsed from field.Tag.
+// The value is loaded by querying each backend in turn.
+func (l *Loader) loadField(ctx context.Context, v reflect.Value, field reflect.StructField, tag string) error {
+	key, required := parseTag(tag)
+	if key == "" {
+		return fmt.Errorf("no config name for %v", field.Name)
+	}
+	// Go through backends in reverse order, stopping at the first
+	// one that returns an answer, which might save a round-trip or two.
+	// TODO fetch values concurrently.
+	for i := len(l.backends) - 1; i >= 0; i-- {
+		b := l.backends[i]
+		// Avoid information pollution in backends by giving the
+		// backend a fresh zero instance of the result type
+		// instead of the struct field directly. This will
+		// enable us to use concurrent fetches without being
+		// worried about breaking potential cases where backends
+		// end up depending on values that other backends set.
+		// Also, it means that if Unmarshal returns nil, we'll
+		// still zero the result, something that the Unmarshal
+		// implementation should do anyway, but the guarantee is
+		// nice.
+		dest := reflect.New(field.Type)
+
+		backendKey := key
+		if b.UseFieldNameKey() {
+			backendKey = field.Name
+		}
+		if err := b.Unmarshal(ctx, backendKey, dest.Interface()); err != nil {
+			if errors.Cause(err) != ErrNotFound {
+				return errors.WithStack(err)
+			}
+			continue
+		}
+		v.Set(dest.Elem())
+	}
+	if required && isZero(v) {
+		return fmt.Errorf("required key %q for field %q not found", key, field.Name)
+	}
+	return nil
 }
 
-// FieldConfig holds informations about a struct field.
-type FieldConfig struct {
-	Name     string
-	Key      string
-	Value    reflect.Value
-	Default  reflect.Value
-	Required bool
-	Backend  string
-}
-
-// Set converts data into f.Value.
-func (f *FieldConfig) Set(data string) error {
-	return convert(data, f.Value)
+func parseTag(tag string) (envVar string, required bool) {
+	tagFields := strings.Split(tag, ",")
+	envVar = tagFields[0]
+	for _, tagf := range tagFields[1:] {
+		if tagf == "required" {
+			required = true
+		}
+	}
+	return envVar, required
 }
 
 var durationType = reflect.TypeOf(time.Duration(0))
 
-func convert(data string, value reflect.Value) error {
-	t := value.Type()
+// Unmarshal unmarshals the given string value into to,
+// which must be a pointer to one of the types documented
+// for config fields in Load.
+//
+// To unmarshal into a slice, the value is split into
+// comma-separated fields and then invoking
+// Unmarshal on each resulting field.
+//
+// Duration values are unmarshaled using time.ParseDuration.
+func Unmarshal(val string, to interface{}) error {
+	v := reflect.ValueOf(to)
+	if !v.IsValid() || v.Kind() != reflect.Ptr {
+		return fmt.Errorf("cannot unmarshal into %T", to)
+	}
+	return unmarshal(val, v.Elem())
+}
+
+// unmarshal is the internal version of unmarshal which
+// unmarshals data into a reflect.Value instead of interface{}.
+// The value v is expected to be addressable.
+func unmarshal(data string, v reflect.Value) error {
+	t := v.Type()
 	if t == durationType {
 		d, err := time.ParseDuration(data)
 		if err != nil {
 			return err
 		}
-		value.SetInt(int64(d))
+		v.SetInt(int64(d))
 		return nil
 	}
 	switch t.Kind() {
@@ -254,29 +242,20 @@ func convert(data string, value reflect.Value) error {
 		if err != nil {
 			return err
 		}
-		value.SetBool(b)
+		v.SetBool(b)
 	case reflect.Slice:
-		var err error
-		// create a new temporary slice to override the actual Value if it's not empty
-		nv := reflect.MakeSlice(value.Type(), 0, 0)
+		// Unmarshal a slice by splitting the value into comma-separated fields.
 		ss := strings.Split(data, ",")
-		for _, s := range ss {
-			// create a new Value v based on the type of the slice
-			v := reflect.Indirect(reflect.New(t.Elem()))
-			// call convert to set the current value of the slice to v
-			err = convert(s, v)
-			// append v to the temporary slice
-			nv = reflect.Append(nv, v)
+		nv := reflect.MakeSlice(v.Type(), len(ss), len(ss))
+		for i, s := range ss {
+			if err := unmarshal(s, nv.Index(i)); err != nil {
+				return fmt.Errorf("cannot unmarshal %q into %s", s, v.Type().Elem())
+			}
 		}
-		// Set the newly created temporary slice to the target Value
-		value.Set(nv)
-		return err
+		v.Set(nv)
+		return nil
 	case reflect.String:
-		value.SetString(data)
-	case reflect.Ptr:
-		n := reflect.New(value.Type().Elem())
-		value.Set(n)
-		return convert(data, n.Elem())
+		v.SetString(data)
 	case reflect.Int,
 		reflect.Int8,
 		reflect.Int16,
@@ -287,7 +266,7 @@ func convert(data string, value reflect.Value) error {
 			return err
 		}
 
-		value.SetInt(i)
+		v.SetInt(i)
 	case reflect.Uint,
 		reflect.Uint8,
 		reflect.Uint16,
@@ -298,13 +277,13 @@ func convert(data string, value reflect.Value) error {
 			return err
 		}
 
-		value.SetUint(i)
+		v.SetUint(i)
 	case reflect.Float32, reflect.Float64:
 		f, err := strconv.ParseFloat(data, t.Bits())
 		if err != nil {
 			return err
 		}
-		value.SetFloat(f)
+		v.SetFloat(f)
 	default:
 		return fmt.Errorf("field type '%s' not supported", t.Kind())
 	}
@@ -312,8 +291,8 @@ func convert(data string, value reflect.Value) error {
 	return nil
 }
 
+// isZero reports whether v is the zero value for its type.
 func isZero(v reflect.Value) bool {
 	zero := reflect.Zero(v.Type()).Interface()
-	current := v.Interface()
-	return reflect.DeepEqual(current, zero)
+	return reflect.DeepEqual(v.Interface(), zero)
 }
