@@ -188,6 +188,23 @@ func TestLoadIgnored(t *testing.T) {
 	require.Zero(t, s.Name)
 }
 
+func TestLoadFirstBackendWins(t *testing.T) {
+	s := struct {
+		Age  int    `config:"age"`
+	}{}
+
+	st1 := store{
+		"age":  "10",
+	}
+	st2 := store {
+		"age": "77",
+	}
+
+	err := confita.NewLoader(st1, st2).Load(context.Background(), &s)
+	require.NoError(t, err)
+	require.Equal(t, 10, s.Age)
+}
+
 func TestLoadContextCancel(t *testing.T) {
 	s := struct {
 		Name string `config:"-"`
