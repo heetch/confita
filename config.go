@@ -160,6 +160,8 @@ func (l *Loader) resolve(ctx context.Context, s *StructConfig) error {
 		}
 	}
 
+	foundFields := make(map[*FieldConfig]bool)
+
 	for _, b := range l.backends {
 		select {
 		case <-ctx.Done():
@@ -186,6 +188,10 @@ func (l *Loader) resolve(ctx context.Context, s *StructConfig) error {
 		}
 
 		for _, f := range s.Fields {
+			if _, ok := foundFields[f]; ok {
+				continue
+			}
+
 			if f.Backend != "" && f.Backend != b.Name() {
 				continue
 			}
@@ -203,6 +209,7 @@ func (l *Loader) resolve(ctx context.Context, s *StructConfig) error {
 			if err != nil {
 				return err
 			}
+			foundFields[f] = true
 		}
 	}
 
