@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/heetch/confita/backend"
 	"github.com/heetch/confita/backend/file"
 	"github.com/stretchr/testify/require"
 )
@@ -96,11 +97,19 @@ timeout = 10
 		require.Error(t, err)
 	})
 
-	t.Run("File not found", func(t *testing.T) {
+	t.Run("Required file not found", func(t *testing.T) {
 		var c config
 		b := file.NewBackend("some path")
 
 		err := b.Unmarshal(context.Background(), &c)
 		require.Error(t, err)
+	})
+
+	t.Run("Optional file not found", func(t *testing.T) {
+		var c config
+		b := file.NewOptionalBackend("some path")
+
+		err := b.Unmarshal(context.Background(), &c)
+		require.EqualError(t, err, backend.ErrNotFound.Error())
 	})
 }

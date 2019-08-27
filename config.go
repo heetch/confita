@@ -172,6 +172,9 @@ func (l *Loader) resolve(ctx context.Context, s *StructConfig) error {
 		if u, ok := b.(Unmarshaler); ok {
 			err := u.Unmarshal(ctx, s.S)
 			if err != nil {
+				if err == backend.ErrNotFound {
+					continue
+				}
 				return err
 			}
 
@@ -201,7 +204,6 @@ func (l *Loader) resolve(ctx context.Context, s *StructConfig) error {
 				if err == backend.ErrNotFound {
 					continue
 				}
-
 				return err
 			}
 

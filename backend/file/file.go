@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/BurntSushi/toml"
+	"github.com/heetch/confita/backend"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
@@ -14,12 +15,14 @@ import (
 // Backend that loads a configuration from a file.
 // It supports json and yaml formats.
 type Backend struct {
-	path string
-	name string
+	path     string
+	name     string
+	optional bool
 }
 
 // NewBackend creates a configuration loader that loads from a file.
 // The content will get decoded based on the file extension.
+// If optional parameter is set to true, calling Unmarshal won't return an error if the file doesn't exist.
 func NewBackend(path string) *Backend {
 	name := filepath.Ext(path)
 	if name != "" {
@@ -32,11 +35,29 @@ func NewBackend(path string) *Backend {
 	}
 }
 
+// NewOptionalBackend implementation is exactly the same as NewBackend except that
+// if the file is not found, backend.ErrNotFound will be returned.
+func NewOptionalBackend(path string) *Backend {
+	name := filepath.Ext(path)
+	if name != "" {
+		name = name[1:]
+	}
+
+	return &Backend{
+		path:     path,
+		name:     name,
+		optional: true,
+	}
+}
+
 // Unmarshal takes a struct pointer and unmarshals the file into it,
 // using either json or yaml based on the file extention.
 func (b *Backend) Unmarshal(ctx context.Context, to interface{}) error {
 	f, err := os.Open(b.path)
 	if err != nil {
+		if b.optional {
+			return backend.ErrNotFound
+		}
 		return errors.Wrapf(err, "failed to open file at path \"%s\"", b.path)
 	}
 	defer f.Close()
