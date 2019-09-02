@@ -159,13 +159,28 @@ type Config struct {
 
 The `flags` backend allows to load individual configuration keys from the command line. The default values are extracted from the struct fields values.
 
+A `short` option is also supported.
+
+```go
+type Config struct {
+  Host        string        `config:"host,short=h"`
+  Port        uint32        `config:"port,short=p"`
+  Timeout     time.Duration `config:"timeout"`
+}
+```
+
+
 ```sh
 ./bin -h
 
 Usage of ./bin:
   -host string
        (default "127.0.0.1")
+  -h string
+       (default "127.0.0.1")
   -port int
+       (default 5656)
+  -p int
        (default 5656)
   -timeout duration
        (default 10s)

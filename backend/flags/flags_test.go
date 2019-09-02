@@ -17,13 +17,13 @@ import (
 
 type Config struct {
 	A    string        `config:"a"`
-	Adef string        `config:"a-def"`
+	Adef string        `config:"a-def,short=ad"`
 	B    bool          `config:"b"`
-	Bdef bool          `config:"b-def"`
+	Bdef bool          `config:"b-def,short=bd"`
 	C    time.Duration `config:"c"`
-	Cdef time.Duration `config:"c-def"`
+	Cdef time.Duration `config:"c-def,short=cd"`
 	D    int           `config:"d"`
-	Ddef int           `config:"d-def"`
+	Ddef int           `config:"d-def,short=dd"`
 }
 
 func runHelper(t *testing.T, args ...string) *Config {
@@ -63,6 +63,22 @@ func TestFlags(t *testing.T) {
 		require.Equal(t, 15*time.Second, cfg.Cdef)
 		require.Equal(t, -200, cfg.Ddef)
 	})
+}
+
+func TestFlagsShort(t *testing.T) {
+	cfg := runHelper(t, "-ad=hello", "-bd=true", "-cd=20s", "-dd=500")
+	require.Equal(t, "hello", cfg.Adef)
+	require.Equal(t, true, cfg.Bdef)
+	require.Equal(t, 20*time.Second, cfg.Cdef)
+	require.Equal(t, 500, cfg.Ddef)
+}
+
+func TestFlagsMixed(t *testing.T) {
+	cfg := runHelper(t, "-ad=hello", "-b-def=true", "-cd=20s", "-d-def=500")
+	require.Equal(t, "hello", cfg.Adef)
+	require.Equal(t, true, cfg.Bdef)
+	require.Equal(t, 20*time.Second, cfg.Cdef)
+	require.Equal(t, 500, cfg.Ddef)
 }
 
 func TestHelperProcess(t *testing.T) {
