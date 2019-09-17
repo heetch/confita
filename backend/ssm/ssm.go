@@ -41,7 +41,7 @@ func (b *Backend) fetchParams(ctx context.Context) error {
 		Path:           &b.ssmPath,
 		Recursive:      ptr.Bool(true),
 		WithDecryption: ptr.Bool(true),
-		MaxResults:     ptr.Int64(1000),
+		MaxResults:     ptr.Int64(10),
 	}
 
 	for {

@@ -66,6 +66,6 @@ func getSSMOpts(path string) *ssm.GetParametersByPathInput {
 		Path:             &path,
 		Recursive:        ptr.Bool(true),
 		WithDecryption:   ptr.Bool(true),
-		MaxResults: ptr.Int64(1000),
+		MaxResults: ptr.Int64(10),
 	}
 }
