@@ -36,19 +36,15 @@ require (
 	github.com/gotestyourself/gotestyourself v2.2.0+incompatible // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.8.6 // indirect
-	github.com/hashicorp/consul v1.0.7
+	github.com/hashicorp/consul/api v1.1.0
 	github.com/hashicorp/go-hclog v0.9.0 // indirect
 	github.com/hashicorp/go-memdb v1.0.1 // indirect
 	github.com/hashicorp/go-msgpack v0.5.5 // indirect
 	github.com/hashicorp/go-plugin v1.0.0 // indirect
-	github.com/hashicorp/go-rootcerts v0.0.0-20160503143440-6bb64b370b90 // indirect
-	github.com/hashicorp/go-uuid v1.0.1 // indirect
 	github.com/hashicorp/go-version v1.2.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.1 // indirect
 	github.com/hashicorp/golang-math-big v0.0.0-20180316142257-561262b71329 // indirect
 	github.com/hashicorp/hcl v0.0.0-20180404174102-ef8a98b0bbce // indirect
-	github.com/hashicorp/memberlist v0.1.3 // indirect
-	github.com/hashicorp/serf v0.8.1 // indirect
 	github.com/hashicorp/vault v0.9.6
 	github.com/jefferai/jsonx v1.0.0 // indirect
 	github.com/jonboulle/clockwork v0.1.0 // indirect
@@ -59,9 +55,6 @@ require (
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
 	github.com/mgutz/logxi v0.0.0-20161027140823-aebf8a7d67ab // indirect
 	github.com/mitchellh/copystructure v1.0.0 // indirect
-	github.com/mitchellh/go-homedir v0.0.0-20161203194507-b8bc1bf76747 // indirect
-	github.com/mitchellh/go-testing-interface v1.0.0 // indirect
-	github.com/mitchellh/mapstructure v0.0.0-20180220230111-00c29f56e238 // indirect
 	github.com/mitchellh/reflectwalk v1.0.1 // indirect
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opencontainers/image-spec v1.0.1 // indirect
