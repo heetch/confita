@@ -24,6 +24,10 @@ type Config struct {
 	Cdef time.Duration `config:"c-def,short=cd"`
 	D    int           `config:"d"`
 	Ddef int           `config:"d-def,short=dd"`
+	E    uint          `config:"e"`
+	Edef uint          `config:"e-def,short=ed"`
+	F    float32       `config:"f"`
+	Fdef float32       `config:"f-def,short=fd"`
 }
 
 func runHelper(t *testing.T, args ...string) *Config {
@@ -49,36 +53,44 @@ func runHelper(t *testing.T, args ...string) *Config {
 
 func TestFlags(t *testing.T) {
 	t.Run("Use defaults", func(t *testing.T) {
-		cfg := runHelper(t, "-a=hello", "-b=true", "-c=10s", "-d=-100")
+		cfg := runHelper(t, "-a=hello", "-b=true", "-c=10s", "-d=-100", "-e=1", "-f=100.01")
 		require.Equal(t, "hello", cfg.A)
 		require.Equal(t, true, cfg.B)
 		require.Equal(t, 10*time.Second, cfg.C)
 		require.Equal(t, -100, cfg.D)
+		require.Equal(t, uint(1), cfg.E)
+		require.Equal(t, float32(100.01), cfg.F)
 	})
 
 	t.Run("Override defaults", func(t *testing.T) {
-		cfg := runHelper(t, "-a-def=bye", "-b-def=false", "-c-def=15s", "-d-def=-200")
+		cfg := runHelper(t, "-a-def=bye", "-b-def=false", "-c-def=15s", "-d-def=-200", "-e-def=400", "-f-def=2.33")
 		require.Equal(t, "bye", cfg.Adef)
 		require.Equal(t, false, cfg.Bdef)
 		require.Equal(t, 15*time.Second, cfg.Cdef)
 		require.Equal(t, -200, cfg.Ddef)
+		require.Equal(t, uint(400), cfg.Edef)
+		require.Equal(t, float32(2.33), cfg.Fdef)
 	})
 }
 
 func TestFlagsShort(t *testing.T) {
-	cfg := runHelper(t, "-ad=hello", "-bd=true", "-cd=20s", "-dd=500")
+	cfg := runHelper(t, "-ad=hello", "-bd=true", "-cd=20s", "-dd=500", "-ed=700", "-fd=333.33")
 	require.Equal(t, "hello", cfg.Adef)
 	require.Equal(t, true, cfg.Bdef)
 	require.Equal(t, 20*time.Second, cfg.Cdef)
 	require.Equal(t, 500, cfg.Ddef)
+	require.Equal(t, uint(700), cfg.Edef)
+	require.Equal(t, float32(333.33), cfg.Fdef)
 }
 
 func TestFlagsMixed(t *testing.T) {
-	cfg := runHelper(t, "-ad=hello", "-b-def=true", "-cd=20s", "-d-def=500")
+	cfg := runHelper(t, "-ad=hello", "-b-def=true", "-cd=20s", "-d-def=500", "-ed=600", "-f-def=42.42")
 	require.Equal(t, "hello", cfg.Adef)
 	require.Equal(t, true, cfg.Bdef)
 	require.Equal(t, 20*time.Second, cfg.Cdef)
 	require.Equal(t, 500, cfg.Ddef)
+	require.Equal(t, uint(600), cfg.Edef)
+	require.Equal(t, float32(42.42), cfg.Fdef)
 }
 
 func TestHelperProcess(t *testing.T) {
