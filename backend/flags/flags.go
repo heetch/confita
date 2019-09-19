@@ -3,6 +3,7 @@ package flags
 import (
 	"context"
 	"flag"
+	"fmt"
 	"reflect"
 	"time"
 
@@ -33,9 +34,9 @@ func (b *Backend) LoadStruct(ctx context.Context, cfg *confita.StructConfig) err
 		switch {
 		case f.Value.Type().String() == "time.Duration":
 			var val time.Duration
-			flag.DurationVar(&val, f.Key, time.Duration(f.Default.Int()), "")
+			flag.DurationVar(&val, f.Key, time.Duration(f.Default.Int()), f.Description)
 			if f.Short != "" {
-				flag.DurationVar(&val, f.Short, time.Duration(f.Default.Int()), "")
+				flag.DurationVar(&val, f.Short, time.Duration(f.Default.Int()), shortDesc(f.Description))
 			}
 			// this function must be executed after the flag.Parse call.
 			defer func() {
@@ -46,9 +47,9 @@ func (b *Backend) LoadStruct(ctx context.Context, cfg *confita.StructConfig) err
 			}()
 		case k == reflect.Bool:
 			var val bool
-			flag.BoolVar(&val, f.Key, f.Default.Bool(), "")
+			flag.BoolVar(&val, f.Key, f.Default.Bool(), f.Description)
 			if f.Short != "" {
-				flag.BoolVar(&val, f.Short, f.Default.Bool(), "")
+				flag.BoolVar(&val, f.Short, f.Default.Bool(), shortDesc(f.Description))
 			}
 			defer func() {
 				if isFlagSet(f) {
@@ -57,9 +58,9 @@ func (b *Backend) LoadStruct(ctx context.Context, cfg *confita.StructConfig) err
 			}()
 		case k >= reflect.Int && k <= reflect.Int64:
 			var val int
-			flag.IntVar(&val, f.Key, int(f.Default.Int()), "")
+			flag.IntVar(&val, f.Key, int(f.Default.Int()), f.Description)
 			if f.Short != "" {
-				flag.IntVar(&val, f.Short, int(f.Default.Int()), "")
+				flag.IntVar(&val, f.Short, int(f.Default.Int()), shortDesc(f.Description))
 			}
 			defer func() {
 				if isFlagSet(f) {
@@ -68,9 +69,9 @@ func (b *Backend) LoadStruct(ctx context.Context, cfg *confita.StructConfig) err
 			}()
 		case k >= reflect.Uint && k <= reflect.Uint64:
 			var val uint64
-			flag.Uint64Var(&val, f.Key, f.Default.Uint(), "")
+			flag.Uint64Var(&val, f.Key, f.Default.Uint(), f.Description)
 			if f.Short != "" {
-				flag.Uint64Var(&val, f.Short, f.Default.Uint(), "")
+				flag.Uint64Var(&val, f.Short, f.Default.Uint(), shortDesc(f.Description))
 			}
 			defer func() {
 				if isFlagSet(f) {
@@ -79,9 +80,9 @@ func (b *Backend) LoadStruct(ctx context.Context, cfg *confita.StructConfig) err
 			}()
 		case k >= reflect.Float32 && k <= reflect.Float64:
 			var val float64
-			flag.Float64Var(&val, f.Key, f.Default.Float(), "")
+			flag.Float64Var(&val, f.Key, f.Default.Float(), f.Description)
 			if f.Short != "" {
-				flag.Float64Var(&val, f.Short, f.Default.Float(), "")
+				flag.Float64Var(&val, f.Short, f.Default.Float(), shortDesc(f.Description))
 			}
 			defer func() {
 				if isFlagSet(f) {
@@ -90,9 +91,9 @@ func (b *Backend) LoadStruct(ctx context.Context, cfg *confita.StructConfig) err
 			}()
 		case k == reflect.String:
 			var val string
-			flag.StringVar(&val, f.Key, f.Default.String(), "")
+			flag.StringVar(&val, f.Key, f.Default.String(), f.Description)
 			if f.Short != "" {
-				flag.StringVar(&val, f.Short, f.Default.String(), "")
+				flag.StringVar(&val, f.Short, f.Default.String(), shortDesc(f.Description))
 			}
 			defer func() {
 				if isFlagSet(f) {
@@ -100,7 +101,7 @@ func (b *Backend) LoadStruct(ctx context.Context, cfg *confita.StructConfig) err
 				}
 			}()
 		default:
-			flag.Var(&flagValue{f}, f.Key, "")
+			flag.Var(&flagValue{f}, f.Key, f.Description)
 		}
 	}
 
@@ -133,6 +134,10 @@ func (b *Backend) Get(ctx context.Context, key string) ([]byte, error) {
 // Name returns the name of the flags backend.
 func (b *Backend) Name() string {
 	return "flags"
+}
+
+func shortDesc(description string) string {
+	return fmt.Sprintf("%s (short)", description)
 }
 
 func isFlagSet(config *confita.FieldConfig) bool {

@@ -137,6 +137,11 @@ func (l *Loader) parseStruct(ref reflect.Value) *StructConfig {
 					continue
 				}
 
+				if strings.HasPrefix(opt, "description=") {
+					f.Description = opt[len("description="):]
+					continue
+				}
+
 				if strings.HasPrefix(opt, "backend=") {
 					f.Backend = opt[len("backend="):]
 				}
@@ -242,13 +247,14 @@ type StructConfig struct {
 
 // FieldConfig holds informations about a struct field.
 type FieldConfig struct {
-	Name     string
-	Short    string
-	Key      string
-	Value    reflect.Value
-	Default  reflect.Value
-	Required bool
-	Backend  string
+	Name        string
+	Short       string
+	Key         string
+	Description string
+	Value       reflect.Value
+	Default     reflect.Value
+	Required    bool
+	Backend     string
 }
 
 // Set converts data into f.Value.
