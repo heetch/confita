@@ -2,13 +2,17 @@ sudo: required
 
 language: go
 
+go:
+  - 1.12
+  - 1.13
+  - tip
+
 services:
   - docker
 
 env:
   global:
     - VAULT_ADDR=http://127.0.0.1:8200
-    - DEP_VERSION="0.5.0"
     - GO111MODULE=on
 
 matrix:
@@ -18,31 +22,10 @@ matrix:
   # Don't wait for tip tests to finish. Mark the test run green if the
   # tests pass on the stable versions of Go.
   fast_finish: true
-  include:
-  - go: 1.9.x
-    install: dep ensure -v -vendor-only
-    script: go test -v -race -cover -timeout=1m ./...
-  - go: 1.10.x
-    install: dep ensure -v -vendor-only
-    script: go test -v -race -cover -timeout=1m ./...
-  - go: 1.11.x
-    before_install: skip
-    install:
-      - go build ./...
-      - go mod vendor
-    script: go test -v -race -cover -timeout=1m -mod=vendor ./...
-  - go: tip
-    before_install: skip
-    install:
-      - go build ./...
-      - go mod vendor
-    script: go test -v -race -cover -timeout=1m -mod=vendor ./...
-
-before_install:
-  - mkdir -p $GOPATH/bin
-  - wget -O $GOPATH/bin/dep "https://github.com/golang/dep/releases/download/v${DEP_VERSION}/dep-linux-amd64"
-  - chmod +x $GOPATH/bin/dep
-  - export PATH="$GOPATH/bin:$PATH"
+  install:
+    - go build ./...
+    - go mod vendor
+  script: go test -v -race -cover -timeout=1m -mod=vendor ./...
 
 before_script:
   - docker run -d -p 2379:2379 quay.io/coreos/etcd /usr/local/bin/etcd -advertise-client-urls http://0.0.0.0:2379 -listen-client-urls http://0.0.0.0:2379
