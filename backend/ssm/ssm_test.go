@@ -6,7 +6,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/heetch/confita/backend"
 	"github.com/heetch/confita/mocks"
-	"github.com/heetch/confita/ptr"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -47,8 +46,8 @@ func TestKeysFound(t *testing.T) {
 	client.On("GetParametersByPathWithContext", ctx, ssmOpts).Return(
 		&ssm.GetParametersByPathOutput{
 			Parameters: []*ssm.Parameter{
-				{Name:ptrString("/yo/whatup/a_key"), Value:ptrString("wow")},
-				{Name:ptrString("/yo/whatup/some_key"), Value: ptrString("wondrous")},
+				{Name: ptrString("/yo/whatup/a_key"), Value: ptrString("wow")},
+				{Name: ptrString("/yo/whatup/some_key"), Value: ptrString("wondrous")},
 			},
 		}, nil)
 
@@ -63,9 +62,9 @@ func TestKeysFound(t *testing.T) {
 
 func getSSMOpts(path string) *ssm.GetParametersByPathInput {
 	return &ssm.GetParametersByPathInput{
-		Path:             &path,
-		Recursive:        ptr.Bool(true),
-		WithDecryption:   ptr.Bool(true),
-		MaxResults: ptr.Int64(10),
+		Path:           &path,
+		Recursive:      newBool(true),
+		WithDecryption: newBool(true),
+		MaxResults:     newInt64(10),
 	}
 }

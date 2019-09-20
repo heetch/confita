@@ -2,17 +2,17 @@ package ssm
 
 import (
 	"context"
+	"strings"
+
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
 	"github.com/heetch/confita/backend"
-	"github.com/heetch/confita/ptr"
-	"strings"
 )
 
 type Backend struct {
-	client   ssmiface.SSMAPI
+	client  ssmiface.SSMAPI
 	ssmPath string
-	cache    map[string][]byte
+	cache   map[string][]byte
 }
 
 func NewBackend(ssm ssmiface.SSMAPI, path string) *Backend {
@@ -39,9 +39,9 @@ func (b *Backend) fetchParams(ctx context.Context) error {
 
 	ssmInput := &ssm.GetParametersByPathInput{
 		Path:           &b.ssmPath,
-		Recursive:      ptr.Bool(true),
-		WithDecryption: ptr.Bool(true),
-		MaxResults:     ptr.Int64(10),
+		Recursive:      newBool(true),
+		WithDecryption: newBool(true),
+		MaxResults:     newInt64(10),
 	}
 
 	for {
@@ -73,4 +73,12 @@ func (b *Backend) fromCache(ctx context.Context, key string) ([]byte, error) {
 	}
 
 	return v, nil
+}
+
+func newBool(b bool) *bool {
+	return &b
+}
+
+func newInt64(i int64) *int64 {
+	return &i
 }
