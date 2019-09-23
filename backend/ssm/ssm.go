@@ -54,7 +54,9 @@ func (b *Backend) fetchParams(ctx context.Context) error {
 			if p.Name != nil && p.Value != nil {
 				path := strings.Split(*p.Name, "/")
 				key := path[len(path)-1]
-				b.cache[key] = []byte(*p.Value)
+				if key != "" {
+					b.cache[key] = []byte(*p.Value)
+				}
 			}
 		}
 

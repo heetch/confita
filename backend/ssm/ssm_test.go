@@ -84,6 +84,26 @@ func TestNilNameAndValue(t *testing.T) {
 	require.Equal(t, backend.ErrNotFound, actual)
 }
 
+func TestEmptyKey(t *testing.T) {
+	client := new(mockSSM)
+	ssmOpts := getSSMOpts("/sup/")
+	ctx := context.Background()
+
+	client.On("GetParametersByPathWithContext", ctx, ssmOpts).Return(&ssm.GetParametersByPathOutput{
+		Parameters: []*ssm.Parameter{
+			{
+				Name:  ptrString("/sup/"),
+				Value: ptrString("a value"),
+			},
+		},
+	}, nil)
+
+	b := NewBackend(client, "/sup/")
+
+	_, actual := b.Get(context.Background(), "")
+	require.Equal(t, backend.ErrNotFound, actual)
+}
+
 func TestKeyNotFound(t *testing.T) {
 	client := new(mockSSM)
 	ssmOpts := getSSMOpts("/whatevs/")
