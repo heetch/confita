@@ -3,13 +3,14 @@ package ssm
 import (
 	"context"
 	"fmt"
+	"testing"
+
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
 	"github.com/heetch/confita/backend"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 type mockSSM struct {
@@ -59,6 +60,30 @@ func TestAWSError(t *testing.T) {
 	require.Equal(t, expected, actual)
 }
 
+func TestNilNameAndValue(t *testing.T) {
+	client := new(mockSSM)
+	ssmOpts := getSSMOpts("/sup/")
+	ctx := context.Background()
+
+	client.On("GetParametersByPathWithContext", ctx, ssmOpts).Return(&ssm.GetParametersByPathOutput{
+		Parameters: []*ssm.Parameter{
+			{
+				Name:  nil,
+				Value: nil,
+			},
+			{
+				Name:  ptrString("/sup/key"),
+				Value: nil,
+			},
+		},
+	}, nil)
+
+	b := NewBackend(client, "/sup/")
+
+	_, actual := b.Get(context.Background(), "key")
+	require.Equal(t, backend.ErrNotFound, actual)
+}
+
 func TestKeyNotFound(t *testing.T) {
 	client := new(mockSSM)
 	ssmOpts := getSSMOpts("/whatevs/")
@@ -103,7 +128,7 @@ func TestSSMPagedCall(t *testing.T) {
 	client.On("GetParametersByPathWithContext", ctx, firstOpts).Return(
 		&ssm.GetParametersByPathOutput{
 			Parameters: []*ssm.Parameter{},
-			NextToken:ptrString("/a/path/your_key"),
+			NextToken:  ptrString("/a/path/your_key"),
 		}, nil)
 
 	secondOpts := getSSMOpts("/a/path/")
@@ -114,7 +139,7 @@ func TestSSMPagedCall(t *testing.T) {
 				{Name: ptrString("/a/path/your_key"), Value: ptrString("shazam")},
 				{Name: ptrString("/a/path/another_key"), Value: ptrString("kazam")},
 			},
-			NextToken:nil,
+			NextToken: nil,
 		}, nil)
 
 	b := NewBackend(client, "/a/path/")

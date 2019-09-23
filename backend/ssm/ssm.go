@@ -51,9 +51,11 @@ func (b *Backend) fetchParams(ctx context.Context) error {
 		}
 
 		for _, p := range res.Parameters {
-			path := strings.Split(*p.Name, "/")
-			key := path[len(path)-1]
-			b.cache[key] = []byte(*p.Value)
+			if p.Name != nil && p.Value != nil {
+				path := strings.Split(*p.Name, "/")
+				key := path[len(path)-1]
+				b.cache[key] = []byte(*p.Value)
+			}
 		}
 
 		if res.NextToken == nil {
