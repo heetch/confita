@@ -3,15 +3,51 @@ package ssm
 import (
 	"context"
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
 	"github.com/heetch/confita/backend"
-	"github.com/heetch/confita/mocks"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
 
+type mockSSM struct {
+	mock.Mock
+	ssmiface.SSMAPI
+}
+
+func (_m *mockSSM) GetParametersByPathWithContext(_a0 context.Context, _a1 *ssm.GetParametersByPathInput, _a2 ...request.Option) (*ssm.GetParametersByPathOutput, error) {
+	_va := make([]interface{}, len(_a2))
+	for _i := range _a2 {
+		_va[_i] = _a2[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, _a0, _a1)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *ssm.GetParametersByPathOutput
+	if rf, ok := ret.Get(0).(func(context.Context, *ssm.GetParametersByPathInput, ...request.Option) *ssm.GetParametersByPathOutput); ok {
+		r0 = rf(_a0, _a1, _a2...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*ssm.GetParametersByPathOutput)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *ssm.GetParametersByPathInput, ...request.Option) error); ok {
+		r1 = rf(_a0, _a1, _a2...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 func TestAWSError(t *testing.T) {
-	client := new(mocks.SSMAPI)
+	client := new(mockSSM)
 	ssmOpts := getSSMOpts("/borked/")
 	ctx := context.Background()
 	expected := fmt.Errorf("aws down")
@@ -24,7 +60,7 @@ func TestAWSError(t *testing.T) {
 }
 
 func TestKeyNotFound(t *testing.T) {
-	client := new(mocks.SSMAPI)
+	client := new(mockSSM)
 	ssmOpts := getSSMOpts("/whatevs/")
 	ctx := context.Background()
 	client.On("GetParametersByPathWithContext", ctx, ssmOpts).Return(
@@ -40,7 +76,7 @@ func ptrString(str string) *string {
 }
 
 func TestKeysFound(t *testing.T) {
-	client := new(mocks.SSMAPI)
+	client := new(mockSSM)
 	ctx := context.Background()
 	ssmOpts := getSSMOpts("/yo/whatup/")
 	client.On("GetParametersByPathWithContext", ctx, ssmOpts).Return(
