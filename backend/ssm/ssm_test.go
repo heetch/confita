@@ -96,6 +96,36 @@ func TestKeysFound(t *testing.T) {
 	require.Equal(t, "wondrous", string(actual))
 }
 
+func TestSSMPagedCall(t *testing.T) {
+	client := new(mockSSM)
+	ctx := context.Background()
+	firstOpts := getSSMOpts("/a/path/")
+	client.On("GetParametersByPathWithContext", ctx, firstOpts).Return(
+		&ssm.GetParametersByPathOutput{
+			Parameters: []*ssm.Parameter{},
+			NextToken:ptrString("/a/path/your_key"),
+		}, nil)
+
+	secondOpts := getSSMOpts("/a/path/")
+	secondOpts.NextToken = ptrString("/a/path/your_key")
+	client.On("GetParametersByPathWithContext", ctx, secondOpts).Return(
+		&ssm.GetParametersByPathOutput{
+			Parameters: []*ssm.Parameter{
+				{Name: ptrString("/a/path/your_key"), Value: ptrString("shazam")},
+				{Name: ptrString("/a/path/another_key"), Value: ptrString("kazam")},
+			},
+			NextToken:nil,
+		}, nil)
+
+	b := NewBackend(client, "/a/path/")
+	actual, err := b.Get(context.Background(), "your_key")
+	require.Nil(t, err)
+	require.Equal(t, "shazam", string(actual))
+	actual, err = b.Get(context.Background(), "another_key")
+	require.Nil(t, err)
+	require.Equal(t, "kazam", string(actual))
+}
+
 func getSSMOpts(path string) *ssm.GetParametersByPathInput {
 	return &ssm.GetParametersByPathInput{
 		Path:           &path,
