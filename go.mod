@@ -27,6 +27,7 @@ require (
 	github.com/duosecurity/duo_api_golang v0.0.0-20190308151101-6c680f768e74 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/fatih/structs v1.0.0 // indirect
+	github.com/frankban/quicktest v1.5.0
 	github.com/go-sql-driver/mysql v1.4.1 // indirect
 	github.com/gocql/gocql v0.0.0-20190423091413-b99afaf3b163 // indirect
 	github.com/golang/groupcache v0.0.0-20190129154638-5b532d6fd5ef // indirect
@@ -67,7 +68,7 @@ require (
 	github.com/ryanuber/go-glob v0.0.0-20160226084822-572520ed46db // indirect
 	github.com/sethgrid/pester v0.0.0-20180227223404-ed9870dad317 // indirect
 	github.com/soheilhy/cmux v0.1.4 // indirect
-	github.com/stretchr/testify v1.3.0
+	github.com/stretchr/testify v1.4.0
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect
 	github.com/ugorji/go v1.1.4 // indirect
 	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
@@ -80,7 +81,7 @@ require (
 	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce // indirect
 	gopkg.in/ory-am/dockertest.v3 v3.3.4 // indirect
 	gopkg.in/yaml.v2 v2.2.2
-	gotest.tools v2.2.0+incompatible // indirect
+	gotest.tools v2.2.0+incompatible
 )
 
 go 1.12
