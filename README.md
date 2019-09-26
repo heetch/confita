@@ -16,6 +16,7 @@ Confita is a library that loads configuration from multiple backends and stores 
 - [etcd](https://github.com/coreos/etcd)
 - [Consul](https://www.consul.io/)
 - [Vault](https://www.vaultproject.io/)
+- [Amazon SSM](https://docs.aws.amazon.com/systems-manager/latest/userguide/what-is-systems-manager.html)
 
 ## Install
 
