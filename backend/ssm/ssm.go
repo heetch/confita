@@ -6,20 +6,24 @@ import (
 
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
+
 	"github.com/heetch/confita/backend"
 )
 
-type Backend struct {
+type ssmBackend struct {
 	client  ssmiface.SSMAPI
 	ssmPath string
 	cache   map[string][]byte
 }
 
-func NewBackend(ssm ssmiface.SSMAPI, path string) *Backend {
-	return &Backend{client: ssm, ssmPath: path}
+// NewBackend returns a backend instance that uses the given SSMAPI implementation
+// to retrieve keys from the parameter store at the given path.
+func NewBackend(ssm ssmiface.SSMAPI, path string) backend.Backend {
+	return &ssmBackend{client: ssm, ssmPath: path}
 }
 
-func (b *Backend) Get(ctx context.Context, key string) ([]byte, error) {
+// Get implements backend.Backend.Get by fetching the key from SSM params.
+func (b *ssmBackend) Get(ctx context.Context, key string) ([]byte, error) {
 	if b.cache == nil {
 		err := b.fetchParams(ctx)
 		if err != nil {
@@ -30,11 +34,12 @@ func (b *Backend) Get(ctx context.Context, key string) ([]byte, error) {
 	return b.fromCache(ctx, key)
 }
 
-func (b *Backend) Name() string {
+// Name implements backend.Backend.Name.
+func (b *ssmBackend) Name() string {
 	return "ssm"
 }
 
-func (b *Backend) fetchParams(ctx context.Context) error {
+func (b *ssmBackend) fetchParams(ctx context.Context) error {
 	b.cache = make(map[string][]byte)
 
 	ssmInput := &ssm.GetParametersByPathInput{
@@ -43,40 +48,33 @@ func (b *Backend) fetchParams(ctx context.Context) error {
 		WithDecryption: newBool(true),
 		MaxResults:     newInt64(10),
 	}
-
 	for {
 		res, err := b.client.GetParametersByPathWithContext(ctx, ssmInput)
 		if err != nil {
 			return err
 		}
-
 		for _, p := range res.Parameters {
-			if p.Name != nil && p.Value != nil {
-				path := strings.Split(*p.Name, "/")
-				key := path[len(path)-1]
-				if key != "" {
-					b.cache[key] = []byte(*p.Value)
-				}
+			if p.Name == nil || p.Value == nil {
+				continue
+			}
+			path := strings.Split(*p.Name, "/")
+			if key := path[len(path)-1]; key != "" {
+				b.cache[key] = []byte(*p.Value)
 			}
 		}
-
 		if res.NextToken == nil {
 			break
 		}
-
 		ssmInput.NextToken = res.NextToken
 	}
-
 	return nil
 }
 
-func (b *Backend) fromCache(ctx context.Context, key string) ([]byte, error) {
-	v, ok := b.cache[key]
-	if !ok {
-		return nil, backend.ErrNotFound
+func (b *ssmBackend) fromCache(ctx context.Context, key string) ([]byte, error) {
+	if v, ok := b.cache[key]; ok {
+		return v, nil
 	}
-
-	return v, nil
+	return nil, backend.ErrNotFound
 }
 
 func newBool(b bool) *bool {
