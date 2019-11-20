@@ -10,10 +10,18 @@ import (
 )
 
 func TestEnvBackend(t *testing.T) {
-	t.Run("NotFound", func(t *testing.T) {
+	t.Run("NotFoundBecauseUnset", func(t *testing.T) {
 		b := NewBackend()
 
 		_, err := b.Get(context.Background(), "something that doesn't exist")
+		require.Equal(t, backend.ErrNotFound, err)
+
+	})
+
+	t.Run("NotFoundBecauseEmpty", func(t *testing.T) {
+		b := NewBackend()
+		os.Setenv("TESTCONFIG", "")
+		_, err := b.Get(context.Background(), "TESTCONFIG")
 		require.Equal(t, backend.ErrNotFound, err)
 	})
 
