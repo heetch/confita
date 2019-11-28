@@ -1,12 +1,9 @@
 package flags
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"fmt"
+	"flag"
 	"os"
-	"os/exec"
 	"testing"
 	"time"
 
@@ -15,116 +12,147 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type Config struct {
-	A    string        `config:"a"`
-	Adef string        `config:"a-def,short=ad"`
-	B    bool          `config:"b"`
-	Bdef bool          `config:"b-def,short=bd"`
-	C    time.Duration `config:"c"`
-	Cdef time.Duration `config:"c-def,short=cd"`
-	D    int           `config:"d"`
-	Ddef int           `config:"d-def,short=dd"`
-	E    uint          `config:"e"`
-	Edef uint          `config:"e-def,short=ed"`
-	F    float32       `config:"f"`
-	Fdef float32       `config:"f-def,short=fd"`
-}
-
-func runHelper(t *testing.T, args ...string) *Config {
+func runHelper(t *testing.T, cfg interface{}, args ...string) {
 	t.Helper()
 
-	var output bytes.Buffer
-
-	cs := []string{"-test.run=TestHelperProcess", "--"}
-	cs = append(cs, args...)
-	cmd := exec.Command(os.Args[0], cs...)
-	cmd.Stderr = &output
-	cmd.Env = []string{"GO_HELPER_PROCESS=1"}
-	err := cmd.Run()
+	flags := flag.NewFlagSet("test", flag.ContinueOnError)
+	os.Args = append([]string{"a.out"}, args...)
+	err := confita.NewLoader(&Backend{flags}).Load(context.Background(), cfg)
 	require.NoError(t, err)
-
-	var cfg Config
-
-	err = json.NewDecoder(&output).Decode(&cfg)
-	require.NoError(t, err)
-
-	return &cfg
 }
 
 func TestFlags(t *testing.T) {
 	t.Run("Use defaults", func(t *testing.T) {
-		cfg := runHelper(t, "-a=hello", "-b=true", "-c=10s", "-d=-100", "-e=1", "-f=100.01")
-		require.Equal(t, "hello", cfg.A)
-		require.Equal(t, true, cfg.B)
-		require.Equal(t, 10*time.Second, cfg.C)
-		require.Equal(t, -100, cfg.D)
-		require.Equal(t, uint(1), cfg.E)
-		require.Equal(t, float32(100.01), cfg.F)
+		type config struct {
+			A string        `config:"a"`
+			B bool          `config:"b"`
+			C time.Duration `config:"c"`
+			D int           `config:"d"`
+			E uint          `config:"e"`
+			F float32       `config:"f"`
+		}
+		var cfg config
+		runHelper(t, &cfg, "-a=hello", "-b=true", "-c=10s", "-d=-100", "-e=1", "-f=100.01")
+		require.Equal(t, config{
+			A: "hello",
+			B: true,
+			C: 10 * time.Second,
+			D: -100,
+			E: 1,
+			F: 100.01,
+		}, cfg)
 	})
 
 	t.Run("Override defaults", func(t *testing.T) {
-		cfg := runHelper(t, "-a-def=bye", "-b-def=false", "-c-def=15s", "-d-def=-200", "-e-def=400", "-f-def=2.33")
-		require.Equal(t, "bye", cfg.Adef)
-		require.Equal(t, false, cfg.Bdef)
-		require.Equal(t, 15*time.Second, cfg.Cdef)
-		require.Equal(t, -200, cfg.Ddef)
-		require.Equal(t, uint(400), cfg.Edef)
-		require.Equal(t, float32(2.33), cfg.Fdef)
+		type config struct {
+			Adef string        `config:"a-def,short=ad"`
+			Bdef bool          `config:"b-def,short=bd"`
+			Cdef time.Duration `config:"c-def,short=cd"`
+			Ddef int           `config:"d-def,short=dd"`
+			Edef uint          `config:"e-def,short=ed"`
+			Fdef float32       `config:"f-def,short=fd"`
+		}
+		cfg := &config{
+			Adef: "hello",
+			Bdef: true,
+			Cdef: 10 * time.Second,
+			Ddef: -100,
+		}
+		runHelper(t, cfg, "-a-def=bye", "-b-def=false", "-c-def=15s", "-d-def=-200", "-e-def=400", "-f-def=2.33")
+
+		require.Equal(t, &config{
+			Adef: "bye",
+			Bdef: false,
+			Cdef: 15 * time.Second,
+			Ddef: -200,
+			Edef: 400,
+			Fdef: 2.33,
+		}, cfg)
 	})
 }
 
 func TestFlagsShort(t *testing.T) {
-	cfg := runHelper(t, "-ad=hello", "-bd=true", "-cd=20s", "-dd=500", "-ed=700", "-fd=333.33")
-	require.Equal(t, "hello", cfg.Adef)
-	require.Equal(t, true, cfg.Bdef)
-	require.Equal(t, 20*time.Second, cfg.Cdef)
-	require.Equal(t, 500, cfg.Ddef)
-	require.Equal(t, uint(700), cfg.Edef)
-	require.Equal(t, float32(333.33), cfg.Fdef)
-}
-
-func TestFlagsMixed(t *testing.T) {
-	cfg := runHelper(t, "-ad=hello", "-b-def=true", "-cd=20s", "-d-def=500", "-ed=600", "-f-def=42.42")
-	require.Equal(t, "hello", cfg.Adef)
-	require.Equal(t, true, cfg.Bdef)
-	require.Equal(t, 20*time.Second, cfg.Cdef)
-	require.Equal(t, 500, cfg.Ddef)
-	require.Equal(t, uint(600), cfg.Edef)
-	require.Equal(t, float32(42.42), cfg.Fdef)
-}
-
-func TestHelperProcess(t *testing.T) {
-	if os.Getenv("GO_HELPER_PROCESS") != "1" {
-		return
+	type config struct {
+		Adef string        `config:"a-def,short=ad"`
+		Bdef bool          `config:"b-def,short=bd"`
+		Cdef time.Duration `config:"c-def,short=cd"`
+		Ddef int           `config:"d-def,short=dd"`
+		Edef uint          `config:"e-def,short=ed"`
+		Fdef float32       `config:"f-def,short=fd"`
 	}
-
-	args := os.Args
-	for len(args) > 0 {
-		if args[0] == "--" {
-			args = args[1:]
-			break
-		}
-		args = args[1:]
-	}
-	if len(args) == 0 {
-		fmt.Fprintf(os.Stderr, "No args\n")
-		os.Exit(2)
-	}
-
-	os.Args = append(os.Args[:1], args...)
-
-	cfg := Config{
+	cfg := &config{
 		Adef: "hello",
 		Bdef: true,
 		Cdef: 10 * time.Second,
 		Ddef: -100,
 	}
+	runHelper(t, cfg, "-ad=hello", "-bd=true", "-cd=20s", "-dd=500", "-ed=700", "-fd=333.33")
+	require.Equal(t, &config{
+		Adef: "hello",
+		Bdef: true,
+		Cdef: 20 * time.Second,
+		Ddef: 500,
+		Edef: 700,
+		Fdef: 333.33,
+	}, cfg)
+}
 
-	err := confita.NewLoader(NewBackend()).Load(context.Background(), &cfg)
+func TestFlagsMixed(t *testing.T) {
+	type config struct {
+		Adef string        `config:"a-def,short=ad"`
+		Bdef bool          `config:"b-def,short=bd"`
+		Cdef time.Duration `config:"c-def,short=cd"`
+		Ddef int           `config:"d-def,short=dd"`
+		Edef uint          `config:"e-def,short=ed"`
+		Fdef float32       `config:"f-def,short=fd"`
+	}
+	cfg := &config{
+		Adef: "hello",
+		Bdef: true,
+		Cdef: 10 * time.Second,
+		Ddef: -100,
+	}
+	runHelper(t, cfg, "-ad=hello", "-b-def=true", "-cd=20s", "-d-def=500", "-ed=600", "-f-def=42.42")
+	require.Equal(t, &config{
+		Adef: "hello",
+		Bdef: true,
+		Cdef: 20 * time.Second,
+		Ddef: 500,
+		Edef: 600,
+		Fdef: 42.42,
+	}, cfg)
+}
+
+func TestWithAnotherBackend(t *testing.T) {
+	type config struct {
+		String   string        `config:"string,required"`
+		Bool     bool          `config:"bool,required"`
+		Int      int           `config:"int,required"`
+		Uint     uint          `config:"uint,required"`
+		Float    float64       `config:"float,required"`
+		Duration time.Duration `config:"duration,required"`
+	}
+
+	var cfg config
+
+	st := store{
+		"bool":     "true",
+		"uint":     "42",
+		"float":    "42.42",
+		"duration": "1ns",
+	}
+
+	flags := flag.NewFlagSet("test", flag.ContinueOnError)
+	os.Args = append([]string{"a.out"}, "-int=42", "-string=string", "-float=99.5")
+	err := confita.NewLoader(st, &Backend{flags}).Load(context.Background(), &cfg)
 	require.NoError(t, err)
-	err = json.NewEncoder(os.Stderr).Encode(&cfg)
-	require.NoError(t, err)
-	os.Exit(0)
+
+	require.Equal(t, "string", cfg.String)
+	require.Equal(t, true, cfg.Bool)
+	require.Equal(t, 42, cfg.Int)
+	require.EqualValues(t, 42, cfg.Uint)
+	require.Equal(t, 99.5, cfg.Float)
+	require.Equal(t, time.Duration(1), cfg.Duration)
 }
 
 type store map[string]string
@@ -140,33 +168,4 @@ func (s store) Get(ctx context.Context, key string) ([]byte, error) {
 
 func (store) Name() string {
 	return "store"
-}
-
-func TestWithAnotherBackend(t *testing.T) {
-	s := struct {
-		String   string        `config:"string,required"`
-		Bool     bool          `config:"bool,required"`
-		Int      int           `config:"int,required"`
-		Uint     uint          `config:"uint,required"`
-		Float    float64       `config:"float,required"`
-		Duration time.Duration `config:"duration,required"`
-	}{}
-
-	st := store{
-		"string":   "string",
-		"bool":     "true",
-		"int":      "42",
-		"uint":     "42",
-		"float":    "42.42",
-		"duration": "1ns",
-	}
-
-	err := confita.NewLoader(st, NewBackend()).Load(context.Background(), &s)
-	require.NoError(t, err)
-	require.Equal(t, "string", s.String)
-	require.Equal(t, true, s.Bool)
-	require.Equal(t, 42, s.Int)
-	require.EqualValues(t, 42, s.Uint)
-	require.Equal(t, 42.42, s.Float)
-	require.Equal(t, time.Duration(1), s.Duration)
 }
