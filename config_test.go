@@ -526,7 +526,7 @@ var errorTests = []struct {
 	into: new(struct {
 		X time.Duration `config:"X"`
 	}),
-	expectError: `time: invalid duration xxxx`,
+	expectError: `time: invalid duration "?xxxx"?`,
 }, {
 	testName: "bad-bool",
 	store: store{
