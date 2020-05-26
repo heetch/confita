@@ -39,8 +39,16 @@ func (b *Backend) Get(ctx context.Context, key string) ([]byte, error) {
 		}
 	}
 
-	if v, ok := b.secret.Data[key]; ok {
-		return []byte(v.(string)), nil
+	data, ok := b.secret.Data["data"]
+	if ok {
+		data := data.(map[string]interface{})
+		if v, ok := data[key]; ok {
+			return []byte(v.(string)), nil
+		}
+	} else {
+		if v, ok := b.secret.Data[key]; ok {
+			return []byte(v.(string)), nil
+		}
 	}
 
 	return nil, backend.ErrNotFound
