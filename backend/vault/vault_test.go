@@ -74,30 +74,48 @@ func TestVaultBackendV2(t *testing.T) {
 		require.EqualError(t, err, "secret not found at the following path: secret/data/test")
 	})
 
-	t.Run("OK", func(t *testing.T) {
-		b := NewBackendV2(c, path)
+	okTests := []struct {
+		name string
+		path string
+	}{
+		{
+			"OK v2 data path",
+			"secret/data/test",
+		},
+		{
+			"OK old path",
+			"secret/test",
+		},
+	}
+	for _, okTest := range okTests {
+		t.Run(okTest.name, func(t *testing.T) {
+			b := NewBackendV2(c, okTest.path)
 
-		_, err = c.Write(path,
-			map[string]interface{}{
-				"data": map[string]string{
-					"foo":    "bar",
-					"cheese": "nan",
-				},
-			})
-		require.NoError(t, err)
+			// For writing we use the Consul client directly,
+			// so we need to use the full proper path.
+			_, err = c.Write("secret/data/test",
+				map[string]interface{}{
+					"data": map[string]string{
+						"foo":  "bar",
+						"data": "nan",
+					},
+				})
+			require.NoError(t, err)
 
-		val, err := b.Get(context.Background(), "foo")
-		require.NoError(t, err)
-		assert.Equal(t, "bar", string(val))
+			val, err := b.Get(context.Background(), "foo")
+			require.NoError(t, err)
+			assert.Equal(t, "bar", string(val))
 
-		val, err = b.Get(context.Background(), "cheese")
-		require.NoError(t, err)
-		assert.Equal(t, "nan", string(val))
-	})
+			val, err = b.Get(context.Background(), "data")
+			require.NoError(t, err)
+			assert.Equal(t, "nan", string(val))
+		})
+	}
 
 	t.Run("NotFound", func(t *testing.T) {
 		b := NewBackendV2(c, path)
 		_, err := b.Get(context.Background(), "badKey")
 		require.EqualError(t, err, backend.ErrNotFound.Error())
 	})
+
 }

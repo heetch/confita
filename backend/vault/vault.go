@@ -3,6 +3,7 @@ package vault
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/vault/api"
 
@@ -32,6 +33,12 @@ func NewBackend(client *api.Logical, path string) *Backend {
 // all the keys from the given path and holds them in memory.
 // Use this when using Vault KV secrets engine v2.
 func NewBackendV2(client *api.Logical, path string) *Backend {
+	path = strings.TrimPrefix(path, "/")
+	// The KV secrets engine v2 uses the "secrets/data" prefix in the path,
+	// but we want to support regular paths as well, just like the Vault CLI does.
+	if strings.HasPrefix(path, "secret/") && !strings.HasPrefix(path, "secret/data/") {
+		path = "secret/data/" + strings.TrimPrefix(path, "secret/")
+	}
 	return &Backend{
 		client: client,
 		path:   path,
