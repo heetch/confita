@@ -2,8 +2,10 @@ package vault
 
 import (
 	"context"
+	"math/rand"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/vault/api"
 	"github.com/stretchr/testify/assert"
@@ -12,6 +14,11 @@ import (
 	"github.com/heetch/confita/backend"
 )
 
+const letterBytes = "abcdefghijklmnopqrstuvwxyz"
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
 func TestVaultBackend(t *testing.T) {
 	os.Setenv("VAULT_ADDR", "http://127.0.0.1:8200")
 	client, err := api.NewClient(api.DefaultConfig())
@@ -64,14 +71,15 @@ func TestVaultBackendV2(t *testing.T) {
 	client.SetToken("root")
 	c := client.Logical()
 
-	path := "secret/data/test"
+	randPathSuffix := randStringBytes(5)
+	path := "secret/data/" + randPathSuffix
 
 	defer c.Delete(path)
 
 	t.Run("SecretPathNotFound", func(t *testing.T) {
 		b := NewBackendV2(c, path)
 		_, err := b.Get(context.Background(), "foo")
-		require.EqualError(t, err, "secret not found at the following path: secret/data/test")
+		require.EqualError(t, err, "secret not found at the following path: "+path)
 	})
 
 	okTests := []struct {
@@ -80,11 +88,11 @@ func TestVaultBackendV2(t *testing.T) {
 	}{
 		{
 			"OK v2 data path",
-			"secret/data/test",
+			path,
 		},
 		{
 			"OK old path",
-			"secret/test",
+			"secret/" + randPathSuffix,
 		},
 	}
 	for _, okTest := range okTests {
@@ -93,7 +101,7 @@ func TestVaultBackendV2(t *testing.T) {
 
 			// For writing we use the Consul client directly,
 			// so we need to use the full proper path.
-			_, err = c.Write("secret/data/test",
+			_, err = c.Write(path,
 				map[string]interface{}{
 					"data": map[string]string{
 						"foo":  "bar",
@@ -118,4 +126,12 @@ func TestVaultBackendV2(t *testing.T) {
 		require.EqualError(t, err, backend.ErrNotFound.Error())
 	})
 
+}
+
+func randStringBytes(n int) string {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	return string(b)
 }
