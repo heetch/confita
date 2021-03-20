@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/vault/api"
+
 	"github.com/heetch/confita/backend"
 )
 
@@ -13,14 +14,28 @@ type Backend struct {
 	client *api.Logical
 	path   string
 	secret *api.Secret
+	// KV secrets engine v2
+	v2 bool
 }
 
 // NewBackend creates a configuration loader that loads from Vault
 // all the keys from the given path and holds them in memory.
+// Use this when using Vault KV secrets engine v1.
 func NewBackend(client *api.Logical, path string) *Backend {
 	return &Backend{
 		client: client,
 		path:   path,
+	}
+}
+
+// NewBackendV2 creates a configuration loader that loads from Vault
+// all the keys from the given path and holds them in memory.
+// Use this when using Vault KV secrets engine v2.
+func NewBackendV2(client *api.Logical, path string) *Backend {
+	return &Backend{
+		client: client,
+		path:   path,
+		v2:     true,
 	}
 }
 
@@ -39,8 +54,17 @@ func (b *Backend) Get(ctx context.Context, key string) ([]byte, error) {
 		}
 	}
 
-	if v, ok := b.secret.Data[key]; ok {
-		return []byte(v.(string)), nil
+	if b.v2 {
+		if data, ok := b.secret.Data["data"]; ok {
+			data := data.(map[string]interface{})
+			if v, ok := data[key]; ok {
+				return []byte(v.(string)), nil
+			}
+		}
+	} else {
+		if v, ok := b.secret.Data[key]; ok {
+			return []byte(v.(string)), nil
+		}
 	}
 
 	return nil, backend.ErrNotFound
