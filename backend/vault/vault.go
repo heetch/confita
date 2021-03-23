@@ -37,7 +37,7 @@ func NewBackendV2(client *api.Logical, path string) *Backend {
 	// The KV secrets engine v2 uses the "secrets/data" prefix in the path,
 	// but we want to support regular paths as well, just like the Vault CLI does.
 	if strings.HasPrefix(path, "secret/") && !strings.HasPrefix(path, "secret/data/") {
-		path = "secret/data/" + strings.TrimPrefix(path, "secret/")
+		path = strings.Replace(path, "secret/", "secret/data/", 1)
 	}
 	return &Backend{
 		client: client,
