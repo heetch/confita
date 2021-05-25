@@ -13,7 +13,7 @@ import (
 )
 
 // Backend that loads a configuration from a file.
-// It supports json and yaml formats.
+// It supports JSON, YAML, and TOML formats.
 type Backend struct {
 	path     string
 	name     string
@@ -51,7 +51,7 @@ func NewOptionalBackend(path string) *Backend {
 }
 
 // Unmarshal takes a struct pointer and unmarshals the file into it,
-// using either json or yaml based on the file extention.
+// using one of JSON, YAML, or TOML based on the file extention.
 func (b *Backend) Unmarshal(ctx context.Context, to interface{}) error {
 	f, err := os.Open(b.path)
 	if err != nil {
