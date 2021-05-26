@@ -51,7 +51,7 @@ func NewOptionalBackend(path string) *Backend {
 }
 
 // Unmarshal takes a struct pointer and unmarshals the file into it,
-// using one of JSON, YAML, or TOML based on the file extention.
+// using one of JSON, YAML, or TOML based on the file extension.
 func (b *Backend) Unmarshal(ctx context.Context, to interface{}) error {
 	f, err := os.Open(b.path)
 	if err != nil {
