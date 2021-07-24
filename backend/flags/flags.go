@@ -33,6 +33,16 @@ func (b *Backend) LoadStruct(ctx context.Context, cfg *confita.StructConfig) err
 			continue
 		}
 
+		// Check if value type implements flag.Value interface and process value accordingly
+		valuePtr := f.Value
+		if f.Value.Kind() != reflect.Ptr && f.Value.CanAddr() {
+			valuePtr = f.Value.Addr()
+		}
+		if iface, ok := valuePtr.Interface().(flag.Value); ok {
+			b.flags.Var(iface, f.Key, f.Description)
+			continue
+		}
+
 		// Display all the flags and their default values but override the field only if the user has explicitely
 		// set the flag.
 		k := f.Value.Kind()
