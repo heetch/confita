@@ -1,0 +1,28 @@
+# docker-compose file for bringing up backends need to test confita locally
+version: "3.9"
+services:
+  consul:
+    image: consul
+    ports:
+      - "8500:8500"
+  etc:
+    image: quay.io/coreos/etcd
+    ports:
+      - "2379:2379"
+    environment:
+      ETCD_ADVERTISE_CLIENT_URLS: "http://0.0.0.0:2379"
+      ETCD_LISTEN_CLIENT_URLS: "http://0.0.0.0:2379"
+  vault096:
+    image: vault:0.9.6
+    ports:
+      - "8200:8200"
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: root
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+  vault010:
+    image: vault:0.10.0
+    ports:
+      - "8222:8200"
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: root
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
