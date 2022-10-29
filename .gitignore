@@ -16,3 +16,4 @@ vendor/
 
 # IDE
 .idea
+.vscode
