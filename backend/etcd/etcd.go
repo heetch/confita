@@ -5,8 +5,8 @@ import (
 	"path"
 	"strings"
 
-	"github.com/coreos/etcd/clientv3"
 	"github.com/heetch/confita/backend"
+	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
 // Backend loads keys from etcd.
@@ -70,7 +70,7 @@ func (b *Backend) fetchTree(ctx context.Context) error {
 	return nil
 }
 
-func (b *Backend) fromCache(ctx context.Context, key string) ([]byte, error) {
+func (b *Backend) fromCache(_ context.Context, key string) ([]byte, error) {
 	v, ok := b.cache[key]
 	if !ok {
 		return nil, backend.ErrNotFound

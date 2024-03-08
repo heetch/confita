@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/coreos/etcd/clientv3"
 	"github.com/heetch/confita/backend"
 	"github.com/stretchr/testify/require"
+	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
 func TestEtcdBackend(t *testing.T) {
@@ -48,6 +48,7 @@ func TestEtcdBackendWithPrefetch(t *testing.T) {
 
 		val, err := b.Get(ctx, "key1")
 		require.NoError(t, err)
+		require.Equal(t, []byte("value1"), val)
 
 		// deleting the tree
 		client.KV.Delete(ctx, prefix, clientv3.WithPrefix())
