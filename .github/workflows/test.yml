@@ -3,43 +3,34 @@ name: Test
 jobs:
   test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go-version: [1.15.x, 1.16.x]
-
     services:
-      etc:
-        image: quay.io/coreos/etcd
+      etcd:
+        image: bitnami/etcd:3.5
         ports:
           - 2379:2379
         env:
           ETCD_ADVERTISE_CLIENT_URLS: http://0.0.0.0:2379
           ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
       consul:
-        image: consul
+        image: hashicorp/consul:1.18
         ports:
           - 8500:8500
-      vault096:
-        image: vault:0.9.6
+      vault:
+        image: hashicorp/vault:1.15
         ports:
           - 8200:8200
         env:
           VAULT_DEV_ROOT_TOKEN_ID: root
           VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
-      vault010:
-        image: vault:0.10.0
-        ports:
-          - 8222:8200
-        env:
-          VAULT_DEV_ROOT_TOKEN_ID: root
-          VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
 
     steps:
-    - name: Install Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: ${{ matrix.go-version }}
-    - name: Checkout code
-      uses: actions/checkout@v2
-    - name: Test
-      run: make test
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          cache: true
+          check-latest: true
+          go-version-file: go.mod
+      - name: Test
+        run: make test
