@@ -3,12 +3,13 @@ package file
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/BurntSushi/toml"
 	"github.com/heetch/confita/backend"
-	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
 
@@ -52,13 +53,13 @@ func NewOptionalBackend(path string) *Backend {
 
 // Unmarshal takes a struct pointer and unmarshals the file into it,
 // using either json or yaml based on the file extention.
-func (b *Backend) Unmarshal(ctx context.Context, to interface{}) error {
+func (b *Backend) Unmarshal(ctx context.Context, to any) error {
 	f, err := os.Open(b.path)
 	if err != nil {
 		if b.optional {
 			return backend.ErrNotFound
 		}
-		return errors.Wrapf(err, "failed to open file at path \"%s\"", b.path)
+		return fmt.Errorf("failed to open file at path \"%s\": %w", b.path, err)
 	}
 	defer f.Close()
 
@@ -72,10 +73,10 @@ func (b *Backend) Unmarshal(ctx context.Context, to interface{}) error {
 	case ".toml":
 		_, err = toml.DecodeReader(f, to)
 	default:
-		err = errors.Errorf("unsupported extension \"%s\"", ext)
+		err = fmt.Errorf("unsupported extension \"%s\"", ext)
 	}
 
-	return errors.Wrapf(err, "failed to decode file \"%s\"", b.path)
+	return fmt.Errorf("failed to decode file \"%s\": %w", b.path, err)
 }
 
 // Get is not implemented.

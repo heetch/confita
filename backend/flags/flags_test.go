@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func runHelper(t *testing.T, cfg interface{}, args ...string) {
+func runHelper(t *testing.T, cfg any, args ...string) {
 	t.Helper()
 
 	flags := flag.NewFlagSet("test", flag.ContinueOnError)

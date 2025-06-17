@@ -41,7 +41,7 @@ func TestVaultBackend(t *testing.T) {
 		b := NewBackend(c, path)
 
 		_, err = c.Write(path,
-			map[string]interface{}{
+			map[string]any{
 				"foo":  "bar",
 				"data": "nan",
 			})
@@ -102,7 +102,7 @@ func TestVaultBackendV2(t *testing.T) {
 			// For writing we use the Consul client directly,
 			// so we need to use the full proper path.
 			_, err = c.Write(path,
-				map[string]interface{}{
+				map[string]any{
 					"data": map[string]string{
 						"foo":  "bar",
 						"data": "nan",
