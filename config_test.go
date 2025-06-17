@@ -82,6 +82,7 @@ func TestLoad(t *testing.T) {
 		Ptr             *string       `config:"ptr"`
 		String          string        `config:"string"`
 		Duration        time.Duration `config:"duration"`
+		Time            *time.Time    `config:"time"`
 		Struct          nested
 		StructPtrNil    *nested
 		StructPtrNotNil *nested
@@ -117,10 +118,12 @@ func TestLoad(t *testing.T) {
 		"float64": strconv.FormatFloat(math.MaxFloat64, 'f', 6, 64),
 	}
 
+	date := time.Now().UTC().Truncate(time.Second)
 	otherStore := store{
 		"ptr":      "ptr",
 		"string":   "string",
 		"duration": "10s",
+		"time":     date.Format(time.RFC3339),
 	}
 
 	loader := confita.NewLoader(
@@ -150,6 +153,7 @@ func TestLoad(t *testing.T) {
 		Ptr:      &ptr,
 		String:   "string",
 		Duration: 10 * time.Second,
+		Time:     &date,
 		Struct: nested{
 			Int:    math.MaxInt64,
 			String: "string",
@@ -190,13 +194,13 @@ func TestLoadIgnored(t *testing.T) {
 
 func TestLoadFirstBackendWins(t *testing.T) {
 	s := struct {
-		Age  int    `config:"age"`
+		Age int `config:"age"`
 	}{}
 
 	st1 := store{
-		"age":  "10",
+		"age": "10",
 	}
-	st2 := store {
+	st2 := store{
 		"age": "77",
 	}
 
