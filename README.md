@@ -38,8 +38,11 @@ type Config struct {
   Host        string        `config:"host"`
   Port        uint32        `config:"port"`
   Timeout     time.Duration `config:"timeout"`
+  SomeVal     *time.Time    `config:"someval"`
 }
 ```
+
+Time is expected to be in `RFC3339` format.
 
 By default, all fields are optional. With the required option, if a key is not found then Confita will return an error.
 
