@@ -51,7 +51,7 @@ func (u unmarshaler) Get(ctx context.Context, key string) ([]byte, error) {
 	return nil, nil
 }
 
-func (u unmarshaler) Unmarshal(ctx context.Context, to interface{}) error {
+func (u unmarshaler) Unmarshal(ctx context.Context, to any) error {
 	return json.Unmarshal([]byte(u), to)
 }
 
@@ -516,7 +516,7 @@ func TestSliceField(t *testing.T) {
 var errorTests = []struct {
 	testName    string
 	store       store
-	into        interface{}
+	into        any
 	expectError string
 }{{
 	testName: "bad-duration",

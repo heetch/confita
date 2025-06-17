@@ -2,6 +2,7 @@ package flags
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -9,7 +10,6 @@ import (
 	"time"
 
 	"github.com/heetch/confita"
-	"github.com/pkg/errors"
 )
 
 // Backend that loads configuration from the command line flags.
@@ -137,7 +137,7 @@ func (f *flagValue) String() string {
 	return f.Key
 }
 
-func (f *flagValue) Get() interface{} {
+func (f *flagValue) Get() any {
 	return f.Default.Interface()
 }
 

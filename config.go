@@ -25,7 +25,7 @@ type Loader struct {
 
 // Unmarshaler can be implemented by backends to receive the struct directly and load values into it.
 type Unmarshaler interface {
-	Unmarshal(ctx context.Context, to interface{}) error
+	Unmarshal(ctx context.Context, to any) error
 }
 
 // StructLoader can be implemented by backends to receive the parsed struct informations and load values into it.
@@ -48,7 +48,7 @@ func NewLoader(backends ...backend.Backend) *Loader {
 
 // Load analyses all the Fields of the given struct for a "config" tag and queries each backend
 // in order for the corresponding key. The given context can be used for timeout and cancelation.
-func (l *Loader) Load(ctx context.Context, to interface{}) error {
+func (l *Loader) Load(ctx context.Context, to any) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -74,7 +74,7 @@ func (l *Loader) parseStruct(ref reflect.Value) *StructConfig {
 	t := ref.Type()
 
 	numFields := ref.NumField()
-	for i := 0; i < numFields; i++ {
+	for i := range numFields {
 		field := t.Field(i)
 		value := ref.Field(i)
 		typ := value.Type()
@@ -241,7 +241,7 @@ func (l *Loader) resolve(ctx context.Context, s *StructConfig) error {
 
 // StructConfig holds informations about each field of a struct S.
 type StructConfig struct {
-	S      interface{}
+	S      any
 	Fields []*FieldConfig
 }
 

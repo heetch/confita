@@ -3,7 +3,6 @@ package file_test
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -17,14 +16,15 @@ import (
 func createTempFile(t *testing.T, name, content string) (string, func()) {
 	t.Helper()
 
-	dir, err := ioutil.TempDir("", "confita")
+	dir, err := os.MkdirTemp("", "confita")
 	require.NoError(t, err)
 
 	path := filepath.Join(dir, name)
 	f, err := os.Create(path)
 	require.NoError(t, err)
 
-	fmt.Fprintf(f, content)
+	_, err = fmt.Fprintf(f, "%s", content)
+	require.NoError(t, err)
 
 	require.NoError(t, f.Close())
 
@@ -46,7 +46,7 @@ func TestFileBackend(t *testing.T) {
 		Timeout: 10,
 	}
 
-	testLoad := func(t *testing.T, path string, template interface{}, expected interface{}) {
+	testLoad := func(t *testing.T, path string, template any, expected any) {
 		b := file.NewBackend(path)
 
 		err := b.Unmarshal(context.Background(), template)
