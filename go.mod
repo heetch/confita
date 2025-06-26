@@ -6,9 +6,8 @@ require (
 	github.com/coreos/etcd v3.3.3+incompatible
 	github.com/hashicorp/consul/api v1.1.0
 	github.com/hashicorp/vault/api v1.0.4
-	github.com/pkg/errors v0.8.1
-	github.com/stretchr/testify v1.4.0
-	gopkg.in/yaml.v2 v2.2.2
+	github.com/stretchr/testify v1.10.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -64,6 +63,7 @@ require (
 	google.golang.org/grpc v1.22.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gopkg.in/square/go-jose.v2 v2.3.1 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 
 go 1.24.1
