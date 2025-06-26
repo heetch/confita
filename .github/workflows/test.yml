@@ -16,7 +16,7 @@ jobs:
           ETCD_ADVERTISE_CLIENT_URLS: http://0.0.0.0:2379
           ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
       consul:
-        image: consul
+        image: hashicorp/consul
         ports:
           - 8500:8500
       vault096:
