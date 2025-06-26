@@ -9,7 +9,7 @@ jobs:
 
     services:
       etc:
-        image: quay.io/coreos/etcd
+        image: quay.io/coreos/etcd:v3.6.1
         ports:
           - 2379:2379
         env:
