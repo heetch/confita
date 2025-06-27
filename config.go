@@ -25,7 +25,7 @@ type Loader struct {
 
 // Unmarshaler can be implemented by backends to receive the struct directly and load values into it.
 type Unmarshaler interface {
-	Unmarshal(ctx context.Context, to interface{}) error
+	Unmarshal(ctx context.Context, to any) error
 }
 
 // StructLoader can be implemented by backends to receive the parsed struct informations and load values into it.
@@ -48,7 +48,7 @@ func NewLoader(backends ...backend.Backend) *Loader {
 
 // Load analyses all the Fields of the given struct for a "config" tag and queries each backend
 // in order for the corresponding key. The given context can be used for timeout and cancelation.
-func (l *Loader) Load(ctx context.Context, to interface{}) error {
+func (l *Loader) Load(ctx context.Context, to any) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -74,7 +74,7 @@ func (l *Loader) parseStruct(ref reflect.Value) *StructConfig {
 	t := ref.Type()
 
 	numFields := ref.NumField()
-	for i := 0; i < numFields; i++ {
+	for i := range numFields {
 		field := t.Field(i)
 		value := ref.Field(i)
 		typ := value.Type()
@@ -124,9 +124,9 @@ func (l *Loader) parseStruct(ref reflect.Value) *StructConfig {
 
 		if idx := strings.Index(tag, ","); idx != -1 {
 			f.Key = tag[:idx]
-			opts := strings.Split(tag[idx+1:], ",")
+			it := strings.SplitSeq(tag[idx+1:], ",")
 
-			for _, opt := range opts {
+			for opt := range it {
 				if opt == "required" {
 					f.Required = true
 					continue
@@ -241,7 +241,7 @@ func (l *Loader) resolve(ctx context.Context, s *StructConfig) error {
 
 // StructConfig holds informations about each field of a struct S.
 type StructConfig struct {
-	S      interface{}
+	S      any
 	Fields []*FieldConfig
 }
 
@@ -263,6 +263,7 @@ func (f *FieldConfig) Set(data string) error {
 }
 
 var durationType = reflect.TypeOf(time.Duration(0))
+var timeType = reflect.TypeOf(&time.Time{})
 
 func convert(data string, value reflect.Value) error {
 	t := value.Type()
@@ -274,6 +275,16 @@ func convert(data string, value reflect.Value) error {
 		value.SetInt(int64(d))
 		return nil
 	}
+
+	if t == timeType {
+		d, err := time.Parse(time.RFC3339, data)
+		if err != nil {
+			return err
+		}
+		value.Set(reflect.ValueOf(&d))
+		return nil
+	}
+
 	switch t.Kind() {
 	case reflect.Bool:
 		b, err := strconv.ParseBool(data)

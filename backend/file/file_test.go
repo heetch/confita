@@ -3,9 +3,7 @@ package file_test
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -17,19 +15,16 @@ import (
 func createTempFile(t *testing.T, name, content string) (string, func()) {
 	t.Helper()
 
-	dir, err := ioutil.TempDir("", "confita")
+	f, err := os.CreateTemp("", fmt.Sprintf("*-%s", name))
 	require.NoError(t, err)
 
-	path := filepath.Join(dir, name)
-	f, err := os.Create(path)
+	_, err = f.WriteString(content)
 	require.NoError(t, err)
-
-	fmt.Fprintf(f, content)
 
 	require.NoError(t, f.Close())
 
-	return path, func() {
-		require.NoError(t, os.RemoveAll(dir))
+	return f.Name(), func() {
+		require.NoError(t, os.Remove(f.Name()))
 	}
 }
 
@@ -46,7 +41,7 @@ func TestFileBackend(t *testing.T) {
 		Timeout: 10,
 	}
 
-	testLoad := func(t *testing.T, path string, template interface{}, expected interface{}) {
+	testLoad := func(t *testing.T, path string, template any, expected any) {
 		b := file.NewBackend(path)
 
 		err := b.Unmarshal(context.Background(), template)
@@ -60,7 +55,7 @@ func TestFileBackend(t *testing.T) {
 			"age": 10,
 			"timeout": 10
 		}`)
-		defer cleanup()
+		t.Cleanup(cleanup)
 
 		testLoad(t, path, &config{}, &ekv)
 	})
@@ -71,7 +66,7 @@ func TestFileBackend(t *testing.T) {
   age: 10
   timeout: 10ns
 `)
-		defer cleanup()
+		t.Cleanup(cleanup)
 
 		testLoad(t, path, &config{}, &ekv)
 	})
@@ -83,7 +78,7 @@ func TestFileBackend(t *testing.T) {
 age = 10
 timeout = 10
 `)
-			defer cleanup()
+			t.Cleanup(cleanup)
 
 			testLoad(t, path, &config{}, &ekv)
 		})

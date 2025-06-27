@@ -63,7 +63,7 @@ func (b *Backend) Get(ctx context.Context, key string) ([]byte, error) {
 
 	if b.v2 {
 		if data, ok := b.secret.Data["data"]; ok {
-			data := data.(map[string]interface{})
+			data := data.(map[string]any)
 			if v, ok := data[key]; ok {
 				return []byte(v.(string)), nil
 			}
