@@ -76,7 +76,11 @@ func (b *Backend) Unmarshal(ctx context.Context, to any) error {
 		err = fmt.Errorf("unsupported extension \"%s\"", ext)
 	}
 
-	return fmt.Errorf("failed to decode file \"%s\": %w", b.path, err)
+	if err != nil {
+		return fmt.Errorf("failed to decode file \"%s\": %w", b.path, err)
+	}
+
+	return nil
 }
 
 // Get is not implemented.

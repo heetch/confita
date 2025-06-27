@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -16,20 +15,16 @@ import (
 func createTempFile(t *testing.T, name, content string) (string, func()) {
 	t.Helper()
 
-	dir, err := os.MkdirTemp("", "confita")
+	f, err := os.CreateTemp("", fmt.Sprintf("*-%s", name))
 	require.NoError(t, err)
 
-	path := filepath.Join(dir, name)
-	f, err := os.Create(path)
-	require.NoError(t, err)
-
-	_, err = fmt.Fprintf(f, "%s", content)
+	_, err = f.WriteString(content)
 	require.NoError(t, err)
 
 	require.NoError(t, f.Close())
 
-	return path, func() {
-		require.NoError(t, os.RemoveAll(dir))
+	return f.Name(), func() {
+		require.NoError(t, os.Remove(f.Name()))
 	}
 }
 
@@ -60,7 +55,7 @@ func TestFileBackend(t *testing.T) {
 			"age": 10,
 			"timeout": 10
 		}`)
-		defer cleanup()
+		t.Cleanup(cleanup)
 
 		testLoad(t, path, &config{}, &ekv)
 	})
@@ -71,7 +66,7 @@ func TestFileBackend(t *testing.T) {
   age: 10
   timeout: 10ns
 `)
-		defer cleanup()
+		t.Cleanup(cleanup)
 
 		testLoad(t, path, &config{}, &ekv)
 	})
@@ -83,7 +78,7 @@ func TestFileBackend(t *testing.T) {
 age = 10
 timeout = 10
 `)
-			defer cleanup()
+			t.Cleanup(cleanup)
 
 			testLoad(t, path, &config{}, &ekv)
 		})
