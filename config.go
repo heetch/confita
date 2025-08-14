@@ -263,6 +263,7 @@ func (f *FieldConfig) Set(data string) error {
 }
 
 var durationType = reflect.TypeOf(time.Duration(0))
+var timeType = reflect.TypeOf(time.Time{})
 
 func convert(data string, value reflect.Value) error {
 	t := value.Type()
@@ -274,6 +275,16 @@ func convert(data string, value reflect.Value) error {
 		value.SetInt(int64(d))
 		return nil
 	}
+
+	if t == timeType {
+		d, err := time.Parse(time.RFC3339, data)
+		if err != nil {
+			return err
+		}
+		value.Set(reflect.ValueOf(d))
+		return nil
+	}
+
 	switch t.Kind() {
 	case reflect.Bool:
 		b, err := strconv.ParseBool(data)
