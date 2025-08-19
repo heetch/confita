@@ -50,6 +50,22 @@ func (b *Backend) LoadStruct(ctx context.Context, cfg *confita.StructConfig) err
 					f.Value.SetInt(int64(val))
 				}
 			}()
+		case f.Value.Type().String() == "time.Time":
+			var val time.Time
+			if f.Default.IsValid() {
+				val = f.Default.Interface().(time.Time)
+			}
+			b.flags.Var(newTimeValue(&val), f.Key, f.Description)
+			if f.Short != "" {
+				b.flags.Var(newTimeValue(&val), f.Short, shortDesc(f.Description))
+			}
+			// this function must be executed after the flag.Parse call.
+			defer func() {
+				// if the user has set the flag, save the value in the field.
+				if b.isFlagSet(f) {
+					f.Value.Set(reflect.ValueOf(val))
+				}
+			}()
 		case k == reflect.Bool:
 			var val bool
 			b.flags.BoolVar(&val, f.Key, f.Default.Bool(), f.Description)
@@ -153,4 +169,21 @@ func (b *Backend) Name() string {
 
 func shortDesc(description string) string {
 	return fmt.Sprintf("%s (short)", description)
+}
+
+type timeValue time.Time
+
+func newTimeValue(val *time.Time) *timeValue {
+	return (*timeValue)(val)
+}
+
+func (d *timeValue) String() string { return time.Time(*d).Format(time.RFC3339) }
+
+func (d *timeValue) Set(s string) error {
+	v, err := time.Parse(time.RFC3339, s)
+	if err != nil {
+		err = errors.New("parse error")
+	}
+	*d = timeValue(v)
+	return nil
 }
