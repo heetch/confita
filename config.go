@@ -97,6 +97,10 @@ func (l *Loader) parseStruct(ref reflect.Value) *StructConfig {
 		// if struct or *struct, parse recursively
 		switch typ.Kind() {
 		case reflect.Struct:
+			// Exception for `time.Time` struct
+			if typ == timeType {
+				break
+			}
 			s.Fields = append(s.Fields, l.parseStruct(value).Fields...)
 			continue
 		case reflect.Ptr:
