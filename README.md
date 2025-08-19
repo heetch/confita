@@ -38,7 +38,7 @@ type Config struct {
   Host        string        `config:"host"`
   Port        uint32        `config:"port"`
   Timeout     time.Duration `config:"timeout"`
-  SomeVal     *time.Time    `config:"someval"`
+  SomeVal     time.Time     `config:"someval"`
 }
 ```
 
