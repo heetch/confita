@@ -57,7 +57,7 @@ func (l *Loader) Load(ctx context.Context, to any) error {
 
 	ref := reflect.ValueOf(to)
 
-	if !ref.IsValid() || ref.Kind() != reflect.Ptr || ref.Elem().Kind() != reflect.Struct {
+	if !ref.IsValid() || ref.Kind() != reflect.Pointer || ref.Elem().Kind() != reflect.Struct {
 		return errors.New("provided target must be a pointer to struct")
 	}
 
@@ -97,9 +97,13 @@ func (l *Loader) parseStruct(ref reflect.Value) *StructConfig {
 		// if struct or *struct, parse recursively
 		switch typ.Kind() {
 		case reflect.Struct:
+			// Exception for `time.Time` struct
+			if typ == timeType {
+				break
+			}
 			s.Fields = append(s.Fields, l.parseStruct(value).Fields...)
 			continue
-		case reflect.Ptr:
+		case reflect.Pointer:
 			if typ.Elem().Kind() == reflect.Struct && !value.IsNil() {
 				s.Fields = append(s.Fields, l.parseStruct(value.Elem()).Fields...)
 				continue
@@ -310,7 +314,7 @@ func convert(data string, value reflect.Value) error {
 		return err
 	case reflect.String:
 		value.SetString(data)
-	case reflect.Ptr:
+	case reflect.Pointer:
 		n := reflect.New(value.Type().Elem())
 		value.Set(n)
 		return convert(data, n.Elem())

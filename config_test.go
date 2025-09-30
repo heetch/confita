@@ -66,23 +66,25 @@ func TestLoad(t *testing.T) {
 	}
 
 	type testStruct struct {
-		Bool            bool          `config:"bool"`
-		Int             int           `config:"int"`
-		Int8            int8          `config:"int8"`
-		Int16           int16         `config:"int16"`
-		Int32           int32         `config:"int32"`
-		Int64           int64         `config:"int64"`
-		Uint            uint          `config:"uint"`
-		Uint8           uint8         `config:"uint8"`
-		Uint16          uint16        `config:"uint16"`
-		Uint32          uint32        `config:"uint32"`
-		Uint64          uint64        `config:"uint64"`
-		Float32         float32       `config:"float32"`
-		Float64         float64       `config:"float64"`
-		Ptr             *string       `config:"ptr"`
-		String          string        `config:"string"`
-		Duration        time.Duration `config:"duration"`
-		Time            *time.Time    `config:"time"`
+		Bool            bool           `config:"bool"`
+		Int             int            `config:"int"`
+		Int8            int8           `config:"int8"`
+		Int16           int16          `config:"int16"`
+		Int32           int32          `config:"int32"`
+		Int64           int64          `config:"int64"`
+		Uint            uint           `config:"uint"`
+		Uint8           uint8          `config:"uint8"`
+		Uint16          uint16         `config:"uint16"`
+		Uint32          uint32         `config:"uint32"`
+		Uint64          uint64         `config:"uint64"`
+		Float32         float32        `config:"float32"`
+		Float64         float64        `config:"float64"`
+		Ptr             *string        `config:"ptr"`
+		String          string         `config:"string"`
+		Duration        time.Duration  `config:"duration"`
+		DurationPtr     *time.Duration `config:"duration"`
+		Time            time.Time      `config:"time"`
+		TimePtr         *time.Time     `config:"time"`
 		Struct          nested
 		StructPtrNil    *nested
 		StructPtrNotNil *nested
@@ -118,11 +120,12 @@ func TestLoad(t *testing.T) {
 		"float64": strconv.FormatFloat(math.MaxFloat64, 'f', 6, 64),
 	}
 
+	duration := 10 * time.Second
 	date := time.Now().UTC().Truncate(time.Second)
 	otherStore := store{
 		"ptr":      "ptr",
 		"string":   "string",
-		"duration": "10s",
+		"duration": duration.String(),
 		"time":     date.Format(time.RFC3339),
 	}
 
@@ -137,23 +140,25 @@ func TestLoad(t *testing.T) {
 
 	ptr := "ptr"
 	require.EqualValues(t, testStruct{
-		Bool:     true,
-		Int:      math.MaxInt64,
-		Int8:     math.MaxInt8,
-		Int16:    math.MaxInt16,
-		Int32:    math.MaxInt32,
-		Int64:    math.MaxInt64,
-		Uint:     math.MaxUint64,
-		Uint8:    math.MaxUint8,
-		Uint16:   math.MaxUint16,
-		Uint32:   math.MaxUint32,
-		Uint64:   math.MaxUint64,
-		Float32:  math.MaxFloat32,
-		Float64:  math.MaxFloat64,
-		Ptr:      &ptr,
-		String:   "string",
-		Duration: 10 * time.Second,
-		Time:     &date,
+		Bool:        true,
+		Int:         math.MaxInt64,
+		Int8:        math.MaxInt8,
+		Int16:       math.MaxInt16,
+		Int32:       math.MaxInt32,
+		Int64:       math.MaxInt64,
+		Uint:        math.MaxUint64,
+		Uint8:       math.MaxUint8,
+		Uint16:      math.MaxUint16,
+		Uint32:      math.MaxUint32,
+		Uint64:      math.MaxUint64,
+		Float32:     math.MaxFloat32,
+		Float64:     math.MaxFloat64,
+		Ptr:         &ptr,
+		String:      "string",
+		Duration:    duration,
+		DurationPtr: &duration,
+		Time:        date,
+		TimePtr:     &date,
 		Struct: nested{
 			Int:    math.MaxInt64,
 			String: "string",
@@ -462,7 +467,6 @@ func TestSliceField(t *testing.T) {
 	})
 
 	t.Run("Slice of string - non-empty - no appending", func(t *testing.T) {
-
 		s := struct {
 			Letters []string `config:"letters"`
 		}{
