@@ -521,6 +521,61 @@ func TestSliceField(t *testing.T) {
 	})
 }
 
+func TestMapField(t *testing.T) {
+	t.Run("map of string to []int (json)", func(t *testing.T) {
+		s := struct {
+			Settings map[string][]int `config:"settings"`
+		}{}
+
+		st := store{
+			"settings": `{"key1":[1,2,3],"key2":[4,5,6]}`,
+		}
+
+		err := confita.NewLoader(st).Load(context.Background(), &s)
+		require.NoError(t, err)
+		require.Equal(t, map[string][]int{
+			"key1": {1, 2, 3},
+			"key2": {4, 5, 6},
+		}, s.Settings)
+	})
+
+	t.Run("map of int64 to []int64 (json numeric keys)", func(t *testing.T) {
+		s := struct {
+			AllowedMethods map[int64][]int64 `config:"allowed_methods"`
+		}{}
+
+		st := store{
+			"allowed_methods": `{"7":[1101],"37":[1101],"671":[1101]}`,
+		}
+
+		err := confita.NewLoader(st).Load(context.Background(), &s)
+		require.NoError(t, err)
+		require.Equal(t, map[int64][]int64{
+			7:   {1101},
+			37:  {1101},
+			671: {1101},
+		}, s.AllowedMethods)
+	})
+
+	t.Run("map of int64 to []int64 (non-json numeric keys)", func(t *testing.T) {
+		s := struct {
+			AllowedMethods map[int64][]int64 `config:"allowed_methods"`
+		}{}
+
+		st := store{
+			"allowed_methods": `{7:[1101], 37:[1101], 671:[1101]}`,
+		}
+
+		err := confita.NewLoader(st).Load(context.Background(), &s)
+		require.NoError(t, err)
+		require.Equal(t, map[int64][]int64{
+			7:   {1101},
+			37:  {1101},
+			671: {1101},
+		}, s.AllowedMethods)
+	})
+}
+
 var errorTests = []struct {
 	testName    string
 	store       store
@@ -598,6 +653,15 @@ var errorTests = []struct {
 		X uintptr `config:"X"`
 	}),
 	expectError: `field type 'uintptr' not supported`,
+}, {
+	testName: "unsupported-map-key-type",
+	store: store{
+		"X": `{"a":"b"}`,
+	},
+	into: new(struct {
+		X map[struct{}]string `config:"X"`
+	}),
+	expectError: `map key type 'struct' not supported`,
 }, {
 	testName:    "not-struct-pointer",
 	into:        struct{}{},

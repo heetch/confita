@@ -2,9 +2,11 @@ package confita
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -269,6 +271,12 @@ func (f *FieldConfig) Set(data string) error {
 var durationType = reflect.TypeOf(time.Duration(0))
 var timeType = reflect.TypeOf(time.Time{})
 
+var unquotedNumericJSONKeyRE = regexp.MustCompile(`([{,]\s*)(-?\d+)\s*:`)
+
+func normalizeNumericJSONKeys(data string) string {
+	return unquotedNumericJSONKeyRE.ReplaceAllString(data, `$1"$2":`)
+}
+
 func convert(data string, value reflect.Value) error {
 	t := value.Type()
 	if t == durationType {
@@ -346,6 +354,34 @@ func convert(data string, value reflect.Value) error {
 			return err
 		}
 		value.SetFloat(f)
+	case reflect.Map:
+		keyKind := t.Key().Kind()
+		switch keyKind {
+		case reflect.String,
+			reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+			reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		default:
+			return fmt.Errorf("map key type '%s' not supported", keyKind)
+		}
+
+		nv := reflect.New(t)
+		if err := json.Unmarshal([]byte(data), nv.Interface()); err != nil {
+			if keyKind != reflect.String {
+				normalized := normalizeNumericJSONKeys(data)
+				if normalized != data {
+					nvRetry := reflect.New(t)
+					if errRetry := json.Unmarshal([]byte(normalized), nvRetry.Interface()); errRetry == nil {
+						value.Set(nvRetry.Elem())
+						return nil
+					} else {
+						return errRetry
+					}
+				}
+			}
+			return err
+		}
+
+		value.Set(nv.Elem())
 	default:
 		return fmt.Errorf("field type '%s' not supported", t.Kind())
 	}
